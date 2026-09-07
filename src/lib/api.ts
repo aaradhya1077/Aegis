@@ -1,3 +1,5 @@
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 // ── Mock Fallback Database for Standalone / Offline Resilience ───────────────
 const MOCK_MINES = [
   { id: "MINE-01", name: "Rajmahal Opencast Project", state: "Jharkhand", district: "Godda", company: "Coal India Limited", subsidiary: "CCL", latitude: 25.05, longitude: 87.84, worker_count: 1200, mine_type: "opencast", overall_risk_score: 28.5, status: "active", created_at: "2024-01-15T00:00:00Z" },
