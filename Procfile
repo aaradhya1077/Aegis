@@ -1,1 +1,2 @@
-web: npm start -- -p ${PORT:-3000}
+web: npm start
+
