@@ -27,17 +27,45 @@ export async function apiFetch<T>(
   return res.json();
 }
 
-// ── Auth ─────────────────────────────────────────────────────────────────────
+const DEMO_USERS: Record<string, { name: string; role: string; password: string }> = {
+  "REG-001": { name: "Dr. Priya Sharma (DGMS)", role: "regulator", password: "pass123" },
+  "MINE-001": { name: "Rajesh Kumar (Mine Manager)", role: "mine_officer", password: "pass123" },
+  "ADMIN-001": { name: "System Administrator", role: "admin", password: "admin123" },
+};
 
 export async function login(userId: string, password: string) {
-  const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ user_id: userId, password }),
-  });
-  if (!res.ok) throw new Error("Invalid credentials");
-  return res.json();
+  const normalizedId = userId.trim().toUpperCase();
+  const trimmedPassword = password.trim();
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ user_id: normalizedId, password: trimmedPassword }),
+    });
+
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn("Backend API unreachable, using client demo session...", err);
+  }
+
+  // Graceful fallback for standalone frontend deployments
+  const validUser = DEMO_USERS[normalizedId];
+  if (validUser && validUser.password === trimmedPassword) {
+    return {
+      accessToken: "demo-jwt-aegis-session-token-2026",
+      user: {
+        id: normalizedId,
+        name: validUser.name,
+        role: validUser.role,
+      },
+    };
+  }
+
+  throw new Error("Invalid credentials. Try REG-001 / pass123 or use 1-Click Demo Login.");
 }
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
