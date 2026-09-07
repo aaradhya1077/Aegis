@@ -72,9 +72,20 @@ const RISK_COLORS: Record<string, string> = {
   critical: "#EF4444",
 };
 
+const DEFAULT_DASHBOARD_DATA: DashboardData = {
+  total_mines: 30,
+  compliant_percentage: 84.6,
+  overdue_filings: 4,
+  critical_alerts: 3,
+  total_filings: 218,
+  total_checks: 486,
+  risk_distribution: { low: 18, medium: 7, high: 3, critical: 2 },
+  compliance_by_category: { safety: 88, environmental: 79, labor: 84, dgms: 91 },
+};
+
 export default function DashboardPage() {
   const [currentRole, setCurrentRole] = useState<"regulator" | "mine_officer" | "admin">("regulator");
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<DashboardData | null>(DEFAULT_DASHBOARD_DATA);
   const [mines, setMines] = useState<Array<{ id: string; name: string; state: string; subsidiary: string; mine_type: string; overall_risk_score: number; status: string }>>([]);
   const [alerts, setAlerts] = useState<Array<{ mine_name: string | null; regulation_clause: string | null; predicted_risk: number; trend_direction: string; days_until_due: number }>>([]);
   
