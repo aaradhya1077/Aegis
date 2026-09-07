@@ -1,7 +1,18 @@
 const { spawn } = require('child_process');
 const path = require('path');
 
-const port = process.env.PORT || 3000;
+let port = process.env.PORT || 3000;
+
+// If CLI passed -p, check if it's a valid integer (ignore unexpanded ${PORT:-3000})
+for (let i = 2; i < process.argv.length; i++) {
+  if ((process.argv[i] === '-p' || process.argv[i] === '--port') && process.argv[i + 1]) {
+    const val = process.argv[i + 1].trim();
+    if (/^\d+$/.test(val)) {
+      port = parseInt(val, 10);
+    }
+  }
+}
+
 const host = process.env.HOSTNAME || '0.0.0.0';
 
 console.log(`[Aegis] Starting Next.js server on ${host}:${port}...`);
