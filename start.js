@@ -1,19 +1,32 @@
 const { spawn } = require('child_process');
+const path = require('path');
 
 const port = process.env.PORT || 3000;
-console.log(`[Aegis] Starting Next.js on port: ${port}`);
+const host = process.env.HOSTNAME || '0.0.0.0';
 
-const nextProcess = spawn('npx', ['next', 'start', '-p', String(port)], {
+console.log(`[Aegis] Starting Next.js server on ${host}:${port}...`);
+
+let nextBin;
+try {
+  nextBin = require.resolve('next/dist/bin/next');
+} catch (e) {
+  nextBin = path.join(__dirname, 'node_modules', '.bin', 'next');
+}
+
+const child = spawn(process.execPath, [nextBin, 'start', '-p', String(port), '-H', host], {
   stdio: 'inherit',
-  shell: true,
-  env: process.env,
+  env: {
+    ...process.env,
+    PORT: String(port),
+    HOSTNAME: host,
+  },
 });
 
-nextProcess.on('error', (err) => {
+child.on('error', (err) => {
   console.error('[Aegis] Failed to start Next.js process:', err);
   process.exit(1);
 });
 
-nextProcess.on('exit', (code) => {
+child.on('exit', (code) => {
   process.exit(code || 0);
 });
