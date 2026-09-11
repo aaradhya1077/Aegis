@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import init_db, SessionLocal, DBMine
-from .routers import auth, mines, filings, compliance, regulations, chatbot, forecasts, uploads, reports, inspections, audit, contractors
+from .routers import auth, mines, filings, compliance, regulations, chatbot, forecasts, uploads, reports, inspections, audit, contractors, xai
 
 
 @asynccontextmanager
@@ -64,6 +64,7 @@ app.include_router(reports.router)
 app.include_router(inspections.router)
 app.include_router(audit.router)
 app.include_router(contractors.router)
+app.include_router(xai.router)
 
 
 

@@ -51,31 +51,99 @@ const DEFAULT_GROQ_KEY =
   process.env.NEXT_PUBLIC_GROQ_API_KEY || "";
 
 
-const SAMPLE_PROMPTS = [
-  { label: "CMR 2017 Reg 104 (SMP)", query: "What are the mandatory requirements for Safety Management Plans under CMR 2017 Reg 104?" },
-  { label: "DGMS Form IV Protocol", query: "What is the statutory filing protocol for Form IV Dangerous Occurrence under The Mines Act 1952?" },
-  { label: "Sec 72B/73 Penalties", query: "What are the legal penalties under Mines Act 1952 Section 72B and 73 for non-compliance?" },
-  { label: "खदान वेंटिलेशन नियम (Hindi)", query: "भारतीय कोयला खदानों में वेंटिलेशन और मीथेन गैस जांच के लिए DGMS के नियम क्या हैं?" },
-  { label: "Overdue Mines Check", query: "Which mines in Jharkhand or BCCL have overdue statutory filings?" },
-];
+type RoleType = "regulator" | "mine_officer" | "frontline" | "admin";
+
+const ROLE_META: Record<RoleType, { title: string; subtitle: string; badge: string; badgeColor: string }> = {
+  regulator: {
+    title: "DGMS Statutory & Enforcement Intelligence",
+    subtitle: "Directorate General of Mines Safety • Statutory Audit, Violation Show-Cause & Section 22(1A) Actions",
+    badge: "DGMS Regulator Oversight",
+    badgeColor: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  },
+  mine_officer: {
+    title: "Colliery Safety & Remediation Intelligence",
+    subtitle: "Mine Safety Division • Corrective Action Plans (CAPA), Overdue Filings & Penalty Mitigation",
+    badge: "Colliery Management & Safety",
+    badgeColor: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+  },
+  frontline: {
+    title: "Frontline Shift Safety Advisory",
+    subtitle: "Mining Sirdar & Overman Lens • Pre-Shift Gas Thresholds, Berm Standards & Emergency Stop Rules",
+    badge: "Frontline Field Sirdar",
+    badgeColor: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  },
+  admin: {
+    title: "Platform Operations & Telemetry",
+    subtitle: "Ministry of Coal IT Cell • Knowledge Graph Topology, Merkle Ledger & Model Telemetry",
+    badge: "Platform Operations",
+    badgeColor: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+  },
+};
+
+const ROLE_GREETINGS: Record<RoleType, string> = {
+  regulator:
+    "Welcome Inspector. **Aegis Regulatory Enforcement Assistant** is online.\n\n" +
+    "⚡ **Configured for DGMS Statutory Oversight & Enforcement:**\n" +
+    "- **Mines Act 1952 Sec 22(1A)**: Powers to issue prohibition orders for imminent safety hazards.\n" +
+    "- **High-Risk Collieries**: Rajmahal Opencast (CRITICAL 88.5) and Jharia Colliery (84.5) flagged for urgent inspection.\n" +
+    "- **Monetary Penalties**: Track non-compliance under Sections 72B & 73 with escalation audit chains.\n\n" +
+    "How may I support your statutory enforcement audit today? You can type or tap the microphone to dictate.",
+  mine_officer:
+    "Welcome Safety Manager. **Aegis Colliery Remediation Assistant** is online.\n\n" +
+    "⚡ **Configured for Internal Compliance, Remediation & Risk Mitigation:**\n" +
+    "- **Overdue Filings**: 3 quarterly returns overdue at Rajmahal — remediate before Section 72C penalty accruals.\n" +
+    "- **CAPA Evidence**: Prepare photographic & geotechnical proof to resolve open DGMS violation notices.\n" +
+    "- **Predictive Trajectories**: Review 134 deadline forecasts to prioritize upcoming safety audits.\n\n" +
+    "Which colliery compliance task would you like to review?",
+  frontline:
+    "Welcome Sirdar Ramesh. **Aegis Frontline Shift Safety Advisory** is active.\n\n" +
+    "⚡ **Configured for Pre-Shift Inspections & Real-Time Hazard Thresholds:**\n" +
+    "- **Methane (CH₄) Limit (CMR Reg 153)**: Permissible max 0.75% in return airway; electric isolation at 1.25%.\n" +
+    "- **Haul Road Safety (CMR Reg 106)**: Berm height must be at least tyre diameter (1.8m min).\n" +
+    "- **Strata Dilation**: Report crack widening on Pit-3 Bench 4 directly to the shift log.\n\n" +
+    "Stay alert underground! What statutory safe limit or inspection rule do you need to check?",
+  admin:
+    "Welcome Administrator. **Aegis Platform Operations Intelligence** is active.\n\n" +
+    "⚡ **Configured for Platform Architecture & Telemetry Monitoring:**\n" +
+    "- **Regulatory Graph**: 25 Regulation nodes, 30 Mine nodes, 1,419 Filings, 1,292 Checks.\n" +
+    "- **Blockchain Merkle Ledger**: Cryptographically verifiable tamper-proof audit chain.\n" +
+    "- **Inference Telemetry**: Groq hardware-accelerated LLaMA-3.3 inference (<200ms latency).\n\n" +
+    "What platform telemetry would you like to inspect?",
+};
+
+const ROLE_PROMPTS: Record<RoleType, Array<{ label: string; query: string }>> = {
+  regulator: [
+    { label: "Rajmahal Sec 22 Risk", query: "Why is Rajmahal Opencast Project flagged as Critical risk and what Section 22 actions are warranted?" },
+    { label: "DGMS Open Violations", query: "What are the active DGMS violations and penalties due for show-cause notice?" },
+    { label: "Overdue Filings Escalation", query: "Which mines in Jharkhand have overdue statutory filings requiring penalty escalation?" },
+    { label: "CMR 2017 Reg 104 (SMP)", query: "What are the mandatory requirements for Safety Management Plans under CMR 2017 Reg 104?" },
+    { label: "Sec 72B/73 Penalties", query: "What are the legal penalties under Mines Act 1952 Section 72B and 73 for non-compliance?" },
+  ],
+  mine_officer: [
+    { label: "Rajmahal Overdue Filings", query: "What statutory filings are overdue for Rajmahal Opencast Project and how do we remediate them?" },
+    { label: "Actions Due This Week", query: "What compliance actions and filings are due this week across our colliery?" },
+    { label: "CAPA Evidence Checklist", query: "What evidence is required to close the open DGMS violation on Pit-3 working face?" },
+    { label: "Berm Height Remediation", query: "How do we rectify the haul road berm height violation under CMR 2017 Reg 106?" },
+    { label: "Penalty Mitigation Plan", query: "What steps are required to prevent Section 72C monetary penalties for delayed returns?" },
+  ],
+  frontline: [
+    { label: "CH₄ Statutory Limits", query: "What is the permissible methane gas limit in return airway and what is the emergency withdrawal limit?" },
+    { label: "Haul Road Berm Rule", query: "What are the statutory height requirements for haul road berms under CMR 2017 Reg 106?" },
+    { label: "Report Bench Crack", query: "How should I record a strata crack observed on Bench 4 during morning shift inspection?" },
+    { label: "Water Inundation Buffer", query: "What is the mandatory barrier distance when approaching waterlogged old workings?" },
+    { label: "खदान सुरक्षा नियम (Hindi)", query: "अंडरग्राउंड खदान में मीथेन गैस और छत सपोर्ट के जरूरी नियम क्या हैं?" },
+  ],
+  admin: [
+    { label: "Vector Store Status", query: "What is the current status of the FAISS vector index and embedding models?" },
+    { label: "Merkle Ledger Health", query: "Verify the cryptographic integrity of the SHA-256 tamper-proof audit trail." },
+    { label: "134 Trajectories Split", query: "What is the distribution of the 134 deadline forecast trajectories across risk tiers?" },
+    { label: "Groq Inference Latency", query: "What is the current Groq hardware-accelerated LLaMA-3.3 inference latency?" },
+  ],
+};
 
 export function ChatArea() {
-  const [messages, setMessages] = React.useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "Welcome to the **Aegis Autonomous Statutory Regulatory Intelligence Assistant** (Ministry of Coal & DGMS Dhanbad • SIH 2026).\n\n" +
-        "⚡ **Hardware Acceleration:** Powered by **Groq Ultra-Low Latency Inference** (<200ms) with a grounded **FAISS Vector Store** over the Indian Mining Statutory Corpus:\n" +
-        "- **The Mines Act, 1952** (Sections 22, 22A, 23, 72B, 73)\n" +
-        "- **Coal Mines Regulations, 2017 (CMR 2017)**\n" +
-        "- **DGMS Safety Circulars & Standard Operating Procedures**\n" +
-        "- **MoEF&CC Environmental Clearances & SPCB Standards**\n\n" +
-        "How may I assist your statutory audit today? You can type or tap the microphone to dictate in English or Hindi.",
-      timestamp: new Date(),
-      engine: "Groq Hardware-Accelerated + FAISS Vector Store",
-    },
-  ]);
+  const [currentRole, setCurrentRole] = React.useState<RoleType>("regulator");
+  const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -87,6 +155,55 @@ export function ChatArea() {
   // Speech to Text state
   const [isListening, setIsListening] = React.useState(false);
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
+
+  const syncRole = React.useCallback(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.role && parsed.role in ROLE_META) {
+          return parsed.role as RoleType;
+        }
+      }
+    } catch {}
+    return "regulator" as RoleType;
+  }, []);
+
+  React.useEffect(() => {
+    const initialRole = syncRole();
+    setCurrentRole(initialRole);
+    setMessages([
+      {
+        id: "1",
+        role: "assistant",
+        content: ROLE_GREETINGS[initialRole],
+        timestamp: new Date(),
+        engine: "Groq Hardware-Accelerated + FAISS Vector Store",
+      },
+    ]);
+
+    const handler = () => {
+      const newRole = syncRole();
+      setCurrentRole(newRole);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: `🔄 **Switched to ${ROLE_META[newRole].badge}**\n\n${ROLE_GREETINGS[newRole]}`,
+          timestamp: new Date(),
+          engine: "Aegis Context Engine",
+        },
+      ]);
+    };
+
+    window.addEventListener("aegis-user-changed", handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener("aegis-user-changed", handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, [syncRole]);
 
   React.useEffect(() => {
     const saved = localStorage.getItem("aegis_groq_key");
@@ -167,7 +284,7 @@ export function ChatArea() {
     const startTime = Date.now();
 
     try {
-      const res = await chatQuery(textToSend, groqKey || undefined);
+      const res = await chatQuery(textToSend, groqKey || undefined, currentRole);
       const latency = Date.now() - startTime;
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -194,23 +311,28 @@ export function ChatArea() {
     }
   };
 
+  const activeMeta = ROLE_META[currentRole] || ROLE_META.regulator;
+  const activePrompts = ROLE_PROMPTS[currentRole] || ROLE_PROMPTS.regulator;
+
   return (
-    <Card className="flex flex-col h-[calc(100vh-14rem)] min-h-[540px] max-h-[760px] border-white/10 bg-[#0d1218]/90 backdrop-blur shadow-2xl overflow-hidden">
+    <Card className="flex flex-col h-[calc(100vh-14rem)] min-h-[540px] max-h-[760px] border-white/10 bg-[#0e141d]/95 backdrop-blur shadow-xl overflow-hidden">
       {/* Header */}
       <CardHeader className="gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-white/10 p-3 sm:p-4 bg-white/[0.02]">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-bold text-foreground">
-              <Bot className="h-5 w-5 text-emerald-400" />
-              <span>Aegis Statutory Intelligence</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <Bot className="h-4 w-4" />
+              </span>
+              <span>{activeMeta.title}</span>
             </CardTitle>
-            <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 text-[10px] font-mono flex items-center gap-1">
+            <Badge className={`${activeMeta.badgeColor} text-[10px] font-mono flex items-center gap-1`}>
               <Zap className="h-3 w-3 text-emerald-400 fill-emerald-400" />
-              Groq Hardware Engine Active
+              {activeMeta.badge}
             </Badge>
           </div>
-          <CardDescription className="text-muted-foreground text-xs mt-0.5">
-            Ministry of Coal & DGMS Dhanbad • Grounded Statutory RAG over CMR 2017 & The Mines Act 1952
+          <CardDescription className="text-muted-foreground text-xs mt-1">
+            {activeMeta.subtitle}
           </CardDescription>
         </div>
 
@@ -336,7 +458,7 @@ export function ChatArea() {
         <span className="text-[10px] text-muted-foreground uppercase font-mono shrink-0 flex items-center gap-1 mr-1">
           <BookOpen className="h-3 w-3 text-amber-400" /> Quick:
         </span>
-        {SAMPLE_PROMPTS.map((p, idx) => (
+        {activePrompts.map((p, idx) => (
           <button
             key={idx}
             onClick={() => handleSend(p.query)}
@@ -358,7 +480,15 @@ export function ChatArea() {
           className="flex w-full items-center gap-1.5 sm:gap-2"
         >
           <Input
-            placeholder="Ask statutory query (e.g. 'CMR 2017 Reg 104 requirements', 'खदान में सुरक्षा नियम')..."
+            placeholder={
+              currentRole === "regulator"
+                ? "Ask enforcement query (e.g. 'Rajmahal Section 22 actions', 'Active DGMS violations')..."
+                : currentRole === "mine_officer"
+                ? "Ask remediation query (e.g. 'Overdue filings for Rajmahal', 'Actions due this week')..."
+                : currentRole === "frontline"
+                ? "Ask shift safety query (e.g. 'Permissible methane limit', 'Haul road berm rule')..."
+                : "Ask platform telemetry query (e.g. 'Vector store status', 'Merkle ledger health')..."
+            }
             value={input}
             onChange={(e) => setInput(e.target.value)}
             className="flex-1 text-xs sm:text-sm bg-white/[0.03] border-white/15 h-9 sm:h-10 text-white placeholder:text-neutral-500"

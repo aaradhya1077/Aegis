@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # ── Authentication ────────────────────────────────────────────────────────────
@@ -15,11 +15,9 @@ class User(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    user_id: str = Field(..., alias="user_id")
+    model_config = ConfigDict(populate_by_name=True)
+    user_id: str
     password: str
-
-    class Config:
-        populate_by_name = True
 
 
 class TokenResponse(BaseModel):
@@ -207,6 +205,7 @@ class ChatQueryRequest(BaseModel):
     query: str
     context: str | None = None  # Optional conversation context
     groq_api_key: str | None = None  # Optional Groq API Key passed from client
+    role: str | None = None  # Role lens: regulator | mine_officer | frontline | admin
 
 
 class ChatResponse(BaseModel):

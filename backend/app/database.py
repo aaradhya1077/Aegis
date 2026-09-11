@@ -4,8 +4,7 @@ import os
 from datetime import datetime
 from typing import Generator
 from sqlalchemy import create_engine, Column, String, Float, DateTime, ForeignKey, Text, Integer, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, declarative_base
 
 # Database URL configuration
 DATABASE_URL = os.environ.get("DATABASE_URL")

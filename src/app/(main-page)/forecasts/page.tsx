@@ -28,6 +28,8 @@ import {
 } from "recharts";
 import { fetchForecastAlerts } from "@/lib/api";
 import Link from "next/link";
+import { ShapExplainer } from "@/components/shap-explainer";
+import { IconBrain } from "@tabler/icons-react";
 
 interface ForecastAlert {
   id: string;
@@ -75,6 +77,11 @@ export default function ForecastsPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [trendFilter, setTrendFilter] = useState<string | null>(null);
+  const [showShapStudio, setShowShapStudio] = useState(false);
+  const [selectedMineForShap, setSelectedMineForShap] = useState<{ id: string; name: string } | null>({
+    id: "MINE-04",
+    name: "Jharia Colliery Complex",
+  });
 
   const loadData = () => {
     setLoading(true);
@@ -132,6 +139,20 @@ export default function ForecastsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button
+            variant={showShapStudio ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowShapStudio(!showShapStudio)}
+            className={`text-xs gap-1.5 ${
+              showShapStudio
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+            }`}
+          >
+            <IconBrain size={15} />
+            {showShapStudio ? "Hide SHAP Studio" : "🧠 SHAP Explainable AI (XAI)"}
+          </Button>
+
+          <Button
             variant="outline"
             size="sm"
             onClick={loadData}
@@ -143,6 +164,16 @@ export default function ForecastsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Embedded SHAP Explainable AI Studio */}
+      {showShapStudio && (
+        <div className="p-1 rounded-2xl bg-gradient-to-b from-emerald-500/20 via-transparent to-transparent">
+          <ShapExplainer
+            mineId={selectedMineForShap?.id || "MINE-04"}
+            mineName={selectedMineForShap?.name || "Jharia Colliery Complex"}
+          />
+        </div>
+      )}
 
       {error && (
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center justify-between">
@@ -165,6 +196,7 @@ export default function ForecastsPage() {
             count: deterioratingCount,
             key: "deteriorating",
             sub: "High risk of missed deadline or penalty escalation",
+            stripe: "border-l-[3px] border-l-red-500",
           },
           {
             ...TREND_CONFIG.stable,
@@ -172,6 +204,7 @@ export default function ForecastsPage() {
             count: stableCount,
             key: "stable",
             sub: "Predictable submission cadences within safe margins",
+            stripe: "border-l-[3px] border-l-amber-500",
           },
           {
             ...TREND_CONFIG.improving,
@@ -179,6 +212,7 @@ export default function ForecastsPage() {
             count: improvingCount,
             key: "improving",
             sub: "Demonstrating shortening lag times and prompt filings",
+            stripe: "border-l-[3px] border-l-emerald-500",
           },
         ].map((s) => {
           const isSelected = trendFilter === s.key;
@@ -186,10 +220,10 @@ export default function ForecastsPage() {
             <Card
               key={s.title}
               onClick={() => setTrendFilter(isSelected ? null : s.key)}
-              className={`cursor-pointer transition-all duration-200 bg-[#121820]/80 border shadow-lg backdrop-blur ${
+              className={`cursor-pointer transition-all duration-200 bg-[#0e141d] ${s.stripe} shadow-sm ${
                 isSelected
                   ? "ring-2 ring-emerald-500 border-emerald-500/50"
-                  : "border-white/10 hover:border-white/20"
+                  : "border-white/10 hover:border-white/20 hover:-translate-y-0.5"
               }`}
             >
               <CardContent className="pt-5 pb-4">
@@ -198,16 +232,16 @@ export default function ForecastsPage() {
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {s.label}
                     </span>
-                    <p className="text-3xl font-bold mt-1.5" style={{ color: s.color }}>
+                    <p className="text-3xl font-extrabold mt-1 tracking-tight" style={{ color: s.color }}>
                       {loading ? "..." : s.count}
                     </p>
-                    <p className="text-[11px] text-muted-foreground mt-1">{s.sub}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{s.sub}</p>
                   </div>
                   <div
                     className="p-3 rounded-xl shrink-0"
                     style={{ backgroundColor: s.bg, border: `1px solid ${s.border}` }}
                   >
-                    <s.icon size={28} style={{ color: s.color }} />
+                    <s.icon size={26} style={{ color: s.color }} />
                   </div>
                 </div>
               </CardContent>
@@ -217,15 +251,15 @@ export default function ForecastsPage() {
       </div>
 
       {/* Chart: Risk Distribution */}
-      <Card className="bg-[#121820]/90 border-white/10 shadow-lg">
+      <Card className="bg-[#0e141d] border-white/10 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center justify-between">
+          <CardTitle className="text-sm font-bold flex items-center justify-between text-white">
             <span>Predicted Risk Distribution</span>
             <span className="text-xs font-normal text-muted-foreground">
               Total {alerts.length} monitored statutory clauses
             </span>
           </CardTitle>
-          <CardDescription className="text-xs">
+          <CardDescription className="text-xs text-muted-foreground">
             Frequency distribution of calculated non-compliance probabilities across all registered mines
           </CardDescription>
         </CardHeader>
@@ -238,7 +272,7 @@ export default function ForecastsPage() {
                 <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#182230",
+                    backgroundColor: "#0d1218",
                     border: "1px solid rgba(255,255,255,0.15)",
                     borderRadius: "8px",
                     color: "#f3f4f6",
@@ -391,6 +425,23 @@ export default function ForecastsPage() {
                       >
                         {trend.label}
                       </Badge>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedMineForShap({
+                            id: alert.mine_id,
+                            name: alert.mine_name || alert.mine_id,
+                          });
+                          setShowShapStudio(true);
+                          window.scrollTo({ top: 120, behavior: "smooth" });
+                        }}
+                        className="text-xs h-8 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 gap-1"
+                      >
+                        <IconBrain size={13} />
+                        SHAP
+                      </Button>
 
                       <Link
                         href={`/mines/${alert.mine_id}`}

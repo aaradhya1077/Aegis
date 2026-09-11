@@ -1,7 +1,12 @@
 const { spawn } = require('child_process');
 const path = require('path');
 
-let port = process.env.PORT || 3000;
+// Safely parse PORT (handles Railway assigned PORT or unexpanded env vars)
+let port = 3000;
+const rawEnvPort = process.env.PORT ? String(process.env.PORT).trim() : null;
+if (rawEnvPort && /^\d+$/.test(rawEnvPort)) {
+  port = parseInt(rawEnvPort, 10);
+}
 
 // If CLI passed -p, check if it's a valid integer (ignore unexpanded ${PORT:-3000})
 for (let i = 2; i < process.argv.length; i++) {
@@ -30,6 +35,7 @@ const child = spawn(process.execPath, [nextBin, 'start', '-p', String(port), '-H
     ...process.env,
     PORT: String(port),
     HOSTNAME: host,
+    NODE_ENV: process.env.NODE_ENV || 'production',
   },
 });
 
@@ -40,4 +46,15 @@ child.on('error', (err) => {
 
 child.on('exit', (code) => {
   process.exit(code || 0);
+});
+
+// Forward lifecycle signals for Railway graceful container shutdown
+process.on('SIGTERM', () => {
+  console.log('[Aegis] SIGTERM received, shutting down gracefully...');
+  child.kill('SIGTERM');
+});
+
+process.on('SIGINT', () => {
+  console.log('[Aegis] SIGINT received, shutting down...');
+  child.kill('SIGINT');
 });

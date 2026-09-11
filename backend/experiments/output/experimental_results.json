@@ -1,0 +1,318 @@
+{
+  "timestamp": "2026-09-07T17:13:51.779923",
+  "environment": {
+    "python_version": "3.12.6",
+    "platform": "win32",
+    "vector_engine": "FAISS (IndexFlatIP)",
+    "graph_engine": "NetworkX (Directed Multigraph)",
+    "database": "SQLite / SQLAlchemy ORM"
+  },
+  "experiment_1_nlp_verification": {
+    "total_documents_analyzed": 1406,
+    "aegis_substantive_metrics": {
+      "accuracy": 91.11,
+      "precision": 88.66,
+      "recall": 100.0,
+      "f1_score": 93.99,
+      "specificity": 70.86,
+      "tp": 977,
+      "fp": 125,
+      "fn": 0,
+      "tn": 304
+    },
+    "naive_keyword_metrics": {
+      "accuracy": 90.18,
+      "precision": 87.62,
+      "recall": 100.0,
+      "f1_score": 93.4,
+      "specificity": 67.83,
+      "tp": 977,
+      "fp": 138,
+      "fn": 0,
+      "tn": 291
+    },
+    "random_baseline_metrics": {
+      "accuracy": 50.21,
+      "precision": 70.04,
+      "recall": 49.54,
+      "f1_score": 58.03,
+      "specificity": 51.75,
+      "tp": 484,
+      "fp": 207,
+      "fn": 493,
+      "tn": 222
+    },
+    "latency_ms": {
+      "mean": 0.65,
+      "median": 0.62,
+      "p95": 0.8,
+      "p99": 1.01
+    },
+    "per_category_summary": {
+      "Safety Management Plan": {
+        "document_count": 230,
+        "mean_verification_score": 0.828,
+        "std_verification_score": 0.349
+      },
+      "Annual Safety Report": {
+        "document_count": 179,
+        "mean_verification_score": 0.84,
+        "std_verification_score": 0.333
+      },
+      "Medical Examination Report": {
+        "document_count": 118,
+        "mean_verification_score": 0.832,
+        "std_verification_score": 0.348
+      },
+      "Dust Suppression Report": {
+        "document_count": 118,
+        "mean_verification_score": 0.771,
+        "std_verification_score": 0.385
+      },
+      "Worker Welfare Report": {
+        "document_count": 178,
+        "mean_verification_score": 0.795,
+        "std_verification_score": 0.38
+      },
+      "Production & Development Report": {
+        "document_count": 64,
+        "mean_verification_score": 0.772,
+        "std_verification_score": 0.392
+      },
+      "Environmental Clearance Compliance Report": {
+        "document_count": 373,
+        "mean_verification_score": 0.819,
+        "std_verification_score": 0.359
+      },
+      "Mine Closure Plan": {
+        "document_count": 62,
+        "mean_verification_score": 0.798,
+        "std_verification_score": 0.353
+      },
+      "Ventilation Plan": {
+        "document_count": 57,
+        "mean_verification_score": 0.887,
+        "std_verification_score": 0.302
+      },
+      "Strata Control Plan": {
+        "document_count": 27,
+        "mean_verification_score": 0.778,
+        "std_verification_score": 0.369
+      }
+    }
+  },
+  "experiment_2_faiss_vector_rag": {
+    "indexed_statutory_clauses": 25,
+    "vector_dimension": 512,
+    "index_type": "faiss.IndexFlatIP (Cosine Similarity via Normalized Inner Product)",
+    "recall_at_1": 87.5,
+    "recall_at_3": 100.0,
+    "recall_at_5": 100.0,
+    "mean_reciprocal_rank_mrr": 0.9375,
+    "mean_ndcg_at_5": 0.9485,
+    "search_latency_ms": {
+      "mean": 0.42,
+      "min": 0.369,
+      "max": 0.508,
+      "p95": 0.492
+    },
+    "query_evaluations": [
+      {
+        "query": "methane gas monitoring ventilation in underground coal mines",
+        "top_match": "Para 2",
+        "top_similarity": 0.4083,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      {
+        "query": "ambient air quality monitoring and dust suppression water spraying",
+        "top_match": "EC-2",
+        "top_similarity": 0.504,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      {
+        "query": "statutory medical examination for pneumoconiosis and lung fitness",
+        "top_match": "Reg. 31",
+        "top_similarity": 0.5659,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      },
+      {
+        "query": "strata control roof bolting support plan for deep seams",
+        "top_match": "Reg. 111",
+        "top_similarity": 0.5638,
+        "mrr": 1.0,
+        "ndcg": 0.956
+      },
+      {
+        "query": "effluent treatment and fly ash reclamation compliance for opencast pit",
+        "top_match": "EC-4",
+        "top_similarity": 0.1729,
+        "mrr": 1.0,
+        "ndcg": 0.956
+      },
+      {
+        "query": "overtime wage register and canteen sanitation facilities for workers",
+        "top_match": "Reg. 52",
+        "top_similarity": 0.213,
+        "mrr": 0.5,
+        "ndcg": 0.693
+      },
+      {
+        "query": "quarterly DGMS Form IV fatal and serious accident statistics register",
+        "top_match": "Para 4",
+        "top_similarity": 0.2397,
+        "mrr": 1.0,
+        "ndcg": 0.983
+      },
+      {
+        "query": "mine closure financial assurance and bio-reclamation land handover",
+        "top_match": "EC-5",
+        "top_similarity": 0.5004,
+        "mrr": 1.0,
+        "ndcg": 1.0
+      }
+    ]
+  },
+  "experiment_3_knowledge_graph": {
+    "graph_construction_time_ms": 3.52,
+    "total_nodes": 75,
+    "total_edges": 754,
+    "node_type_distribution": {
+      "act": 7,
+      "obligation": 3,
+      "filing_type": 10,
+      "clause": 25,
+      "mine": 30
+    },
+    "edge_relationship_distribution": {
+      "governed_by": 25,
+      "obligation_type": 25,
+      "requires_filing": 25,
+      "applies_to": 679
+    },
+    "graph_density": 0.135856,
+    "connected_components": 1,
+    "mean_in_degree": 10.05,
+    "max_in_degree": 24,
+    "mean_out_degree": 10.05,
+    "max_out_degree": 33,
+    "multi_hop_traversal_latency_ms": {
+      "mean": 0.704,
+      "median": 0.67,
+      "p95": 0.812
+    },
+    "applicable_regulations_per_mine": {
+      "mean": 22.6,
+      "min": 21,
+      "max": 24
+    }
+  },
+  "experiment_4_deadline_forecasting": {
+    "total_forecasting_series_evaluated": 691,
+    "direction_distribution": {
+      "stable": 319,
+      "deteriorating": 165,
+      "improving": 207
+    },
+    "hazard_prediction_metrics": {
+      "accuracy": 92.33,
+      "precision": 100.0,
+      "recall": 76.96,
+      "f1_score": 86.98,
+      "mae": 0.1048,
+      "rmse": 0.1726
+    },
+    "slope_statistics": {
+      "mean_slope": -34.151,
+      "std_slope": 152.138,
+      "min_slope": -745.0,
+      "max_slope": 379.0
+    },
+    "computation_latency_ms": {
+      "mean_per_mine": 9.159,
+      "p95": 10.247
+    }
+  },
+  "experiment_5_cryptographic_audit": {
+    "current_active_ledger_blocks": 47,
+    "chain_integrity_valid": true,
+    "verification_time_ms": 0.223,
+    "hashing_throughput_tx_per_sec": 253539.41,
+    "tamper_resilience_test": {
+      "simulated_tamper_attacks": 50,
+      "successful_tamper_detections": 50,
+      "detection_rate_percentage": 100.0
+    }
+  },
+  "experiment_6_system_latency": {
+    "total_endpoints_tested": 8,
+    "endpoint_latency_profile": {
+      "GET /healthz": {
+        "mean_ms": 3.34,
+        "median_ms": 3.35,
+        "p95_ms": 4.26,
+        "p99_ms": 4.92,
+        "min_ms": 2.32,
+        "max_ms": 5.13
+      },
+      "GET /api/v1/mines": {
+        "mean_ms": 5.96,
+        "median_ms": 5.92,
+        "p95_ms": 7.32,
+        "p99_ms": 7.33,
+        "min_ms": 4.99,
+        "max_ms": 7.33
+      },
+      "GET /api/v1/compliance/dashboard": {
+        "mean_ms": 41.88,
+        "median_ms": 28.52,
+        "p95_ms": 112.17,
+        "p99_ms": 114.77,
+        "min_ms": 25.12,
+        "max_ms": 115.51
+      },
+      "GET /api/v1/filings": {
+        "mean_ms": 49.57,
+        "median_ms": 36.09,
+        "p95_ms": 121.5,
+        "p99_ms": 123.84,
+        "min_ms": 34.13,
+        "max_ms": 124.46
+      },
+      "GET /api/v1/audit/verify": {
+        "mean_ms": 7.22,
+        "median_ms": 7.08,
+        "p95_ms": 8.64,
+        "p99_ms": 9.25,
+        "min_ms": 6.03,
+        "max_ms": 9.42
+      },
+      "GET /api/v1/forecasts/alerts?threshold=0.3": {
+        "mean_ms": 91.26,
+        "median_ms": 91.15,
+        "p95_ms": 93.23,
+        "p99_ms": 93.48,
+        "min_ms": 88.7,
+        "max_ms": 93.55
+      },
+      "GET /api/v1/reports/summary": {
+        "mean_ms": 11.51,
+        "median_ms": 11.33,
+        "p95_ms": 12.88,
+        "p99_ms": 13.1,
+        "min_ms": 10.36,
+        "max_ms": 13.15
+      },
+      "POST /api/v1/auth/login": {
+        "mean_ms": 221.1,
+        "median_ms": 220.9,
+        "p95_ms": 222.69,
+        "p99_ms": 223.3,
+        "min_ms": 219.25,
+        "max_ms": 223.48
+      }
+    }
+  }
+}

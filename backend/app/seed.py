@@ -46,9 +46,11 @@ random.seed(42)
 
 USERS = [
     {"id": "REG-001", "name": "Dr. Priya Sharma (DGMS)", "role": "regulator", "password": "pass123"},
-    {"id": "MINE-001", "name": "Rajesh Kumar (Mine Manager)", "role": "mine_officer", "password": "pass123"},
+    {"id": "MINE-001", "name": "Rajesh Kumar (Colliery Safety Mgr)", "role": "mine_officer", "password": "pass123"},
+    {"id": "FIELD-001", "name": "Ramesh Mahto (Mining Sirdar)", "role": "frontline", "password": "pass123"},
     {"id": "ADMIN-001", "name": "System Administrator", "role": "admin", "password": "admin123"},
 ]
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -93,6 +95,46 @@ MINES = [
     {"name": "Umrer Underground Mine", "state": "Madhya Pradesh", "district": "Nagpur", "company": "Coal India Limited", "subsidiary": "WCL", "lat": 20.85, "lon": 79.32, "workers": 600, "type": "underground"},
     {"name": "Wani Opencast Mine", "state": "Madhya Pradesh", "district": "Yavatmal", "company": "Coal India Limited", "subsidiary": "WCL", "lat": 20.06, "lon": 78.95, "workers": 450, "type": "opencast"},
 ]
+
+# Exact target risk scores for demo consistency across all modules:
+# 3 Critical (>=75.0), 5 High (50.0-74.9), 12 Medium (25.0-49.9), 10 Low (<25.0)
+MINE_TARGET_RISK = {
+    # ── Critical (3) ────────────────────────────────────────────────────────
+    "Rajmahal Opencast Project": 88.5,
+    "Jharia Colliery Complex": 84.5,
+    "Moonidih Underground Mine": 78.0,
+    # ── High (5) ────────────────────────────────────────────────────────────
+    "Kathara Underground Mine": 72.0,
+    "Amrapali Opencast Mine": 64.5,
+    "Chirimiri Underground Mine": 58.0,
+    "Bharatpur Opencast Mine": 54.0,
+    "Ib Valley Underground Mine": 51.5,
+    # ── Medium (12) ─────────────────────────────────────────────────────────
+    "Bishrampur Colliery": 47.0,
+    "Talcher Coalfield OCP": 44.5,
+    "Lakhanpur Opencast Mine": 42.0,
+    "Orient Mine Complex": 39.5,
+    "Kunustoria Underground Mine": 37.0,
+    "Kajora Colliery": 35.5,
+    "Mugma Opencast Mine": 33.0,
+    "Salanpur Area Mine": 31.5,
+    "Kothagudem Underground Mine": 29.0,
+    "Mandamarri Colliery": 28.0,
+    "Bellampalli Underground Mine": 26.5,
+    "Umrer Underground Mine": 25.5,
+    # ── Low (10) ────────────────────────────────────────────────────────────
+    "Gevra Opencast Project": 22.0,
+    "Kusmunda Opencast Mine": 19.5,
+    "Dipka Opencast Project": 18.0,
+    "Sonepur Bazari OCP": 16.5,
+    "Ramagundam OCP-III": 15.0,
+    "Sathupalli OCP": 14.0,
+    "Nigahi Opencast Project": 12.5,
+    "Jayant Opencast Mine": 11.0,
+    "Dudhichua Opencast Mine": 9.5,
+    "Wani Opencast Mine": 8.0,
+}
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -387,8 +429,17 @@ def seed():
                 freq = reg_data["freq"] or 12
 
                 for f_idx in range(num_filings):
-                    # Decide: compliant (70%) or violation (30%)
-                    is_violation = random.random() < 0.30
+                    # Higher violation rate for critical/high risk mines:
+                    mine_target = MINE_TARGET_RISK.get(mine_data["name"], 30.0)
+                    if mine_target >= 75.0:
+                        is_violation = random.random() < 0.65
+                    elif mine_target >= 50.0:
+                        is_violation = random.random() < 0.45
+                    elif mine_target >= 25.0:
+                        is_violation = random.random() < 0.20
+                    else:
+                        is_violation = random.random() < 0.05
+
 
                     # Mix of past (60%) and future (40%) due dates so
                     # forecasts and dashboard show realistic upcoming deadlines.
@@ -503,37 +554,44 @@ def seed():
         print(f"    -> {check_count} compliance checks generated")
 
         # ── Risk Scores ───────────────────────────────────────────────────
-        print("  [RISK] Computing risk scores...")
+        print("  [RISK] Computing deterministic risk scores (3 Critical, 5 High, 12 Medium, 10 Low)...")
         for mine_id in mine_ids:
-            checks = db.query(DBComplianceCheck).filter(DBComplianceCheck.mine_id == mine_id).all()
-            if not checks:
+            mine = db.query(DBMine).filter(DBMine.id == mine_id).first()
+            if not mine:
                 continue
 
-            # Group by obligation type
-            cat_scores: dict[str, list[float]] = {"safety": [], "environmental": [], "labor": []}
-            for check in checks:
-                reg = db.query(DBRegulation).filter(DBRegulation.id == check.regulation_id).first()
-                if reg and reg.obligation_type in cat_scores:
-                    risk = (1.0 - check.score) * 100.0
-                    cat_scores[reg.obligation_type].append(risk)
+            target_overall = MINE_TARGET_RISK.get(mine.name, 50.0)
 
-            results = {}
-            for cat, scores in cat_scores.items():
-                avg = sum(scores) / max(len(scores), 1) if scores else 50.0
-                results[cat] = round(avg, 1)
+            # Assign safety, environmental, labor based on target
+            if target_overall >= 75.0:
+                safety = round(min(98.0, target_overall + random.uniform(2.0, 5.0)), 1)
+                environmental = round(max(55.0, target_overall - random.uniform(1.0, 6.0)), 1)
+                labor = round(max(50.0, target_overall - random.uniform(2.0, 8.0)), 1)
+            elif target_overall >= 50.0:
+                safety = round(min(88.0, target_overall + random.uniform(0.0, 4.0)), 1)
+                environmental = round(target_overall + random.uniform(-4.0, 4.0), 1)
+                labor = round(target_overall + random.uniform(-5.0, 3.0), 1)
+            elif target_overall >= 25.0:
+                safety = round(target_overall + random.uniform(-3.0, 4.0), 1)
+                environmental = round(target_overall + random.uniform(-3.0, 4.0), 1)
+                labor = round(target_overall + random.uniform(-4.0, 3.0), 1)
+            else:
+                safety = round(max(5.0, target_overall + random.uniform(-2.0, 3.0)), 1)
+                environmental = round(max(5.0, target_overall + random.uniform(-2.0, 3.0)), 1)
+                labor = round(max(5.0, target_overall + random.uniform(-2.0, 2.0)), 1)
 
-            overall = (
-                results.get("safety", 50) * 0.4 +
-                results.get("environmental", 50) * 0.35 +
-                results.get("labor", 50) * 0.25
-            )
-            results["overall"] = round(overall, 1)
+            results = {
+                "safety": safety,
+                "environmental": environmental,
+                "labor": labor,
+                "overall": target_overall,
+            }
 
             # Generate time-series (6 historical points)
             for i in range(6):
                 for category, score in results.items():
-                    variation = random.uniform(-8, 8)
-                    historical_score = max(0, min(100, score + variation))
+                    variation = random.uniform(-2.5, 2.5)
+                    historical_score = max(0.0, min(100.0, score + variation))
                     score_data = f"{mine_id}:{category}:{historical_score}:{(now - timedelta(days=30*(6-i))).isoformat()}"
 
                     db.add(DBRiskScore(
@@ -546,60 +604,109 @@ def seed():
                     ))
 
             # Update mine's overall score
-            mine = db.query(DBMine).filter(DBMine.id == mine_id).first()
-            if mine:
-                mine.overall_risk_score = results["overall"]
+            mine.overall_risk_score = target_overall
 
         db.commit()
 
         # ── Deadline Forecasts ────────────────────────────────────────────
-        print("  [FORECAST] Generating deadline forecasts...")
+        print("  [FORECAST] Generating deadline forecasts (Target: 72 deteriorating, 38 stable, 24 improving)...")
+        all_mines_objs = db.query(DBMine).all()
+        all_regs_objs = db.query(DBRegulation).all()
+
+        crit_mines = [m for m in all_mines_objs if m.overall_risk_score >= 75.0]
+        high_mines = [m for m in all_mines_objs if 50.0 <= m.overall_risk_score < 75.0]
+        med_mines = [m for m in all_mines_objs if 25.0 <= m.overall_risk_score < 50.0]
+        low_mines = [m for m in all_mines_objs if m.overall_risk_score < 25.0]
+
         forecast_count = 0
-        for mine_id in mine_ids:
-            filings_for_mine = db.query(DBFiling).filter(DBFiling.mine_id == mine_id).all()
+        used_pairs = set()
 
-            # Group by regulation
-            by_reg: dict[str, list] = {}
-            for f in filings_for_mine:
-                by_reg.setdefault(f.regulation_id, []).append(f)
+        def add_forecast(mine, reg, trend, risk_val, days_val, conf_val):
+            nonlocal forecast_count
+            db.add(DBDeadlineForecast(
+                id=str(uuid.uuid4()),
+                mine_id=mine.id,
+                regulation_id=reg.id,
+                predicted_risk=round(risk_val, 3),
+                trend_direction=trend,
+                days_until_due=days_val,
+                confidence=round(conf_val, 3),
+                computed_at=now,
+            ))
+            forecast_count += 1
+            used_pairs.add((mine.id, reg.id))
 
-            for reg_id, reg_filings in by_reg.items():
-                reg = db.query(DBRegulation).filter(DBRegulation.id == reg_id).first()
-                if not reg:
-                    continue
+        # 1. 72 Deteriorating:
+        # Prioritize Critical (Rajmahal, Jharia, Moonidih) and High risk mines
+        det_pool = []
+        for m in crit_mines:
+            for r in all_regs_objs:
+                det_pool.append((m, r))
+        for m in high_mines:
+            for r in all_regs_objs:
+                det_pool.append((m, r))
+        for m in med_mines:
+            for r in all_regs_objs:
+                det_pool.append((m, r))
 
-                # Determine trend from filing statuses
-                late_count = sum(1 for f in reg_filings if f.status in ("overdue", "flagged", "missing"))
-                total_count = len(reg_filings)
-                risk_ratio = late_count / max(total_count, 1)
+        for m, r in det_pool:
+            if forecast_count >= 72:
+                break
+            if (m.id, r.id) in used_pairs:
+                continue
+            r_val = random.uniform(0.72, 0.94) if m.overall_risk_score >= 75.0 else random.uniform(0.55, 0.85)
+            d_val = random.randint(3, 24)
+            c_val = random.uniform(0.80, 0.96)
+            add_forecast(m, r, "deteriorating", r_val, d_val, c_val)
 
-                if risk_ratio > 0.5:
-                    trend = "deteriorating"
-                    predicted_risk = min(risk_ratio + 0.1, 1.0)
-                elif risk_ratio > 0.2:
-                    trend = "stable"
-                    predicted_risk = risk_ratio
-                else:
-                    trend = "improving"
-                    predicted_risk = max(risk_ratio - 0.05, 0.0)
+        # 2. 38 Stable:
+        # Prioritize Medium and Low risk mines
+        stable_pool = []
+        for m in med_mines:
+            for r in all_regs_objs:
+                stable_pool.append((m, r))
+        for m in low_mines:
+            for r in all_regs_objs:
+                stable_pool.append((m, r))
+        for m in high_mines:
+            for r in all_regs_objs:
+                stable_pool.append((m, r))
 
-                freq = reg.frequency_months or 12
-                days_until = random.randint(10, freq * 30)
+        stable_target = 72 + 38  # 110
+        for m, r in stable_pool:
+            if forecast_count >= stable_target:
+                break
+            if (m.id, r.id) in used_pairs:
+                continue
+            r_val = random.uniform(0.28, 0.48)
+            d_val = random.randint(15, 60)
+            c_val = random.uniform(0.72, 0.90)
+            add_forecast(m, r, "stable", r_val, d_val, c_val)
 
-                db.add(DBDeadlineForecast(
-                    id=str(uuid.uuid4()),
-                    mine_id=mine_id,
-                    regulation_id=reg_id,
-                    predicted_risk=round(predicted_risk, 3),
-                    trend_direction=trend,
-                    days_until_due=days_until,
-                    confidence=round(random.uniform(0.6, 0.95), 3),
-                    computed_at=now,
-                ))
-                forecast_count += 1
+        # 3. 24 Improving:
+        # Prioritize Low risk mines
+        imp_pool = []
+        for m in low_mines:
+            for r in all_regs_objs:
+                imp_pool.append((m, r))
+        for m in med_mines:
+            for r in all_regs_objs:
+                imp_pool.append((m, r))
+
+        imp_target = 110 + 24  # 134
+        for m, r in imp_pool:
+            if forecast_count >= imp_target:
+                break
+            if (m.id, r.id) in used_pairs:
+                continue
+            r_val = random.uniform(0.06, 0.24)
+            d_val = random.randint(25, 90)
+            c_val = random.uniform(0.78, 0.95)
+            add_forecast(m, r, "improving", r_val, d_val, c_val)
 
         db.commit()
-        print(f"    -> {forecast_count} deadline forecasts generated")
+        print(f"    -> Exactly {forecast_count} deadline forecasts generated (72 deteriorating, 38 stable, 24 improving)")
+
 
         # ── 7. Seed Field Inspections, Violations & CAPA ──────────────────
         print("  [INSPECT] Creating geo-tagged field inspections and CAPA records...")
@@ -627,11 +734,18 @@ def seed():
                 lat_offset = random.uniform(-0.015, 0.015)
                 lon_offset = random.uniform(-0.015, 0.015)
                 
+                # Select realistic inspection actor
+                insp_actor_id, insp_actor_name = random.choice([
+                    ("REG-001", "Dr. Priya Sharma (DGMS)"),
+                    ("MINE-001", "Rajesh Kumar (Colliery Safety Mgr)"),
+                    ("FIELD-001", "Ramesh Mahto (Mining Sirdar)"),
+                ])
+
                 insp = DBInspection(
                     id=insp_id,
                     mine_id=mine.id,
-                    inspector_id="REG-001" if random.random() > 0.5 else "MINE-001",
-                    inspector_name="Dr. Priya Sharma (DGMS)" if random.random() > 0.5 else "Rajesh Kumar (Mine Mgr)",
+                    inspector_id=insp_actor_id,
+                    inspector_name=insp_actor_name,
                     inspected_at=insp_time,
                     latitude=mine.latitude + lat_offset,
                     longitude=mine.longitude + lon_offset,
@@ -750,9 +864,10 @@ def seed():
         print(f"   - {forecast_count} forecasts")
         print(f"")
         print(f"   Login credentials:")
-        print(f"   |-- REG-001  / pass123  (Regulator)")
-        print(f"   |-- MINE-001 / pass123  (Mine Officer)")
-        print(f"   |-- ADMIN-001/ admin123 (Admin)")
+        print(f"   |-- REG-001  / pass123  (DGMS Regulator)")
+        print(f"   |-- MINE-001 / pass123  (Colliery Safety Mgr)")
+        print(f"   |-- FIELD-001/ pass123  (Frontline Mining Sirdar)")
+        print(f"   |-- ADMIN-001/ admin123 (System Admin)")
 
     except Exception as e:
         db.rollback()

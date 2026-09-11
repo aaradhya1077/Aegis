@@ -54,7 +54,14 @@ export function NavUser({ user: initialUser }: NavUserProps) {
           const parsed = JSON.parse(stored);
           setCurrentUser({
             name: parsed.name || "Officer",
-            role: parsed.role === "regulator" ? "DGMS Regulator" : parsed.role === "mine_officer" ? "Mine Officer" : "Administrator",
+            role:
+              parsed.role === "regulator"
+                ? "DGMS Regulator"
+                : parsed.role === "mine_officer"
+                ? "Mine Officer"
+                : parsed.role === "frontline"
+                ? "Frontline Sirdar"
+                : "Administrator",
             avatar: "",
           });
           return;
@@ -97,6 +104,37 @@ export function NavUser({ user: initialUser }: NavUserProps) {
       .toUpperCase();
   };
 
+  const getRoleStyle = (roleStr: string) => {
+    if (roleStr.includes("Mine")) {
+      return {
+        bg: "bg-sky-500/20 text-sky-400 border-sky-500/30",
+        text: "text-sky-300",
+        icon: "text-sky-400",
+      };
+    }
+    if (roleStr.includes("Frontline") || roleStr.includes("Sirdar")) {
+      return {
+        bg: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+        text: "text-amber-300",
+        icon: "text-amber-400",
+      };
+    }
+    if (roleStr.includes("Admin")) {
+      return {
+        bg: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+        text: "text-purple-300",
+        icon: "text-purple-400",
+      };
+    }
+    return {
+      bg: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+      text: "text-emerald-300",
+      icon: "text-emerald-400",
+    };
+  };
+
+  const roleStyle = getRoleStyle(user.role || "");
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -104,17 +142,17 @@ export function NavUser({ user: initialUser }: NavUserProps) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground border border-white/5 bg-white/[0.02]"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors"
             >
-              <Avatar className="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                <AvatarFallback className="rounded-lg bg-emerald-500/20 text-emerald-300 font-semibold text-xs">
+              <Avatar className={`h-8 w-8 rounded-lg ${roleStyle.bg} border`}>
+                <AvatarFallback className={`rounded-lg ${roleStyle.bg} font-semibold text-xs`}>
                   {getInitials(user.name)}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium text-foreground">{user.name}</span>
                 <span className="text-muted-foreground truncate text-xs flex items-center gap-1">
-                  <IconShieldCheck className="h-3 w-3 text-emerald-400 shrink-0" />
+                  <IconShieldCheck className={`h-3 w-3 ${roleStyle.icon} shrink-0`} />
                   {user.role || "Auditor"}
                 </span>
               </div>
@@ -122,15 +160,15 @@ export function NavUser({ user: initialUser }: NavUserProps) {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg bg-[#121820] border-white/10 text-foreground"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg bg-[#0e141d] border-white/10 text-foreground shadow-2xl"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  <AvatarFallback className="rounded-lg bg-emerald-500/20 text-emerald-300 font-semibold text-xs">
+                <Avatar className={`h-8 w-8 rounded-lg ${roleStyle.bg} border`}>
+                  <AvatarFallback className={`rounded-lg ${roleStyle.bg} font-semibold text-xs`}>
                     {getInitials(user.name)}
                   </AvatarFallback>
                 </Avatar>

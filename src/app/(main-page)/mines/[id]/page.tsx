@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { IconArrowLeft, IconShieldCheck, IconAlertTriangle, IconFileText, IconTrendingUp, IconTrendingDown, IconMinus } from "@tabler/icons-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { fetchMine, fetchComplianceChecks, fetchFilings, fetchRiskHistory } from "@/lib/api";
+import { MineDigitalTwin } from "@/components/mine-digital-twin";
+import { ShapExplainer } from "@/components/shap-explainer";
 import Link from "next/link";
 
 const RISK_COLORS: Record<string, string> = {
@@ -99,6 +101,21 @@ export default function MineDetailPage() {
           </Card>
         ))}
       </div>
+
+      {/* 2.5D Mine Strata & Telemetry Digital Twin */}
+      <MineDigitalTwin
+        mineId={mine.id}
+        mineName={mine.name}
+        mineType={mine.mine_type}
+        subsidiary={mine.subsidiary}
+        riskScore={mine.overall_risk_score}
+      />
+
+      {/* Explainable AI (SHAP) Attribution Suite */}
+      <ShapExplainer
+        mineId={mine.id}
+        mineName={mine.name}
+      />
 
       {/* Risk trend chart */}
       <Card>

@@ -15,6 +15,7 @@ import {
   IconMinus,
   IconArrowRight,
   IconDeviceMobile,
+  IconMap2,
   IconAlertOctagon,
   IconUsers,
   IconLink,
@@ -52,7 +53,7 @@ import {
 } from "@/lib/api";
 import Link from "next/link";
 import { toast } from "sonner";
-import { STAKEHOLDERS } from "@/components/stakeholder-switcher";
+import { STAKEHOLDERS, StakeholderRole } from "@/components/stakeholder-switcher";
 
 interface DashboardData {
   total_mines: number;
@@ -75,16 +76,16 @@ const RISK_COLORS: Record<string, string> = {
 const DEFAULT_DASHBOARD_DATA: DashboardData = {
   total_mines: 30,
   compliant_percentage: 84.6,
-  overdue_filings: 4,
-  critical_alerts: 3,
-  total_filings: 218,
-  total_checks: 486,
-  risk_distribution: { low: 18, medium: 7, high: 3, critical: 2 },
-  compliance_by_category: { safety: 88, environmental: 79, labor: 84, dgms: 91 },
+  overdue_filings: 11,
+  critical_alerts: 8,
+  total_filings: 1419,
+  total_checks: 1292,
+  risk_distribution: { low: 10, medium: 12, high: 5, critical: 3 },
+  compliance_by_category: { safety: 86.4, environmental: 81.2, labor: 89.0, dgms: 91.5 },
 };
 
 export default function DashboardPage() {
-  const [currentRole, setCurrentRole] = useState<"regulator" | "mine_officer" | "admin">("regulator");
+  const [currentRole, setCurrentRole] = useState<"regulator" | "mine_officer" | "frontline" | "admin">("regulator");
   const [data, setData] = useState<DashboardData | null>(DEFAULT_DASHBOARD_DATA);
   const [mines, setMines] = useState<Array<{ id: string; name: string; state: string; subsidiary: string; mine_type: string; overall_risk_score: number; status: string }>>([]);
   const [alerts, setAlerts] = useState<Array<{ mine_name: string | null; regulation_clause: string | null; predicted_risk: number; trend_direction: string; days_until_due: number }>>([]);
@@ -102,7 +103,7 @@ export default function DashboardPage() {
         const stored = localStorage.getItem("user");
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed.role && (parsed.role === "regulator" || parsed.role === "mine_officer" || parsed.role === "admin")) {
+          if (parsed.role && (parsed.role === "regulator" || parsed.role === "mine_officer" || parsed.role === "frontline" || parsed.role === "admin")) {
             setCurrentRole(parsed.role);
             return;
           }
@@ -138,7 +139,7 @@ export default function DashboardPage() {
     verifyAuditChain().then((r) => setLedgerValid(r.valid)).catch(console.error);
   }, []);
 
-  const handleSwitchStakeholder = (role: "regulator" | "mine_officer" | "admin") => {
+  const handleSwitchStakeholder = (role: StakeholderRole) => {
     const profile = STAKEHOLDERS[role];
     if (!profile) return;
     if (typeof window !== "undefined") {
@@ -204,12 +205,15 @@ export default function DashboardPage() {
                 ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
                 : currentRole === "mine_officer"
                 ? "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                : currentRole === "frontline"
+                ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
                 : "bg-purple-500/15 text-purple-300 border-purple-500/30"
             }`}
           >
             {currentRole === "regulator" && "🛡️ DGMS Regulator (REG-001)"}
-            {currentRole === "mine_officer" && "👷 Mine Safety Officer (MINE-001)"}
-            {currentRole === "admin" && "⚙️ System Administrator (ADMIN-001)"}
+            {currentRole === "mine_officer" && "🏭 Colliery Management (MINE-001)"}
+            {currentRole === "frontline" && "👷 Frontline Field Sirdar (FIELD-001)"}
+            {currentRole === "admin" && "⚙️ Platform Operations (ADMIN-001)"}
           </Badge>
         </div>
 
@@ -238,7 +242,20 @@ export default function DashboardPage() {
             }`}
           >
             <IconHelmet size={14} className="mr-1.5 text-sky-300" />
-            Mine Officer
+            Colliery Management
+          </Button>
+          <Button
+            size="sm"
+            variant={currentRole === "frontline" ? "default" : "outline"}
+            onClick={() => handleSwitchStakeholder("frontline")}
+            className={`text-xs h-8 px-3 ${
+              currentRole === "frontline"
+                ? "bg-amber-600 hover:bg-amber-500 text-white"
+                : "border-white/10 bg-white/[0.03] text-neutral-300 hover:bg-amber-500/10 hover:text-amber-300"
+            }`}
+          >
+            <IconDeviceMobile size={14} className="mr-1.5 text-amber-300" />
+            Frontline Inspector
           </Button>
           <Button
             size="sm"
@@ -251,7 +268,7 @@ export default function DashboardPage() {
             }`}
           >
             <IconSettings size={14} className="mr-1.5 text-purple-300" />
-            System Admin
+            Platform Ops
           </Button>
         </div>
       </div>
@@ -313,41 +330,45 @@ export default function DashboardPage() {
                 value: data.total_mines,
                 icon: IconBuildingFactory2,
                 description: "CIL & SCCL Collieries",
-                color: "text-emerald-500",
+                color: "text-emerald-400",
+                stripe: "border-l-[3px] border-l-emerald-500",
               },
               {
                 title: "National Compliance Rate",
                 value: `${data.compliant_percentage}%`,
                 icon: IconShieldCheck,
                 description: `${data.total_checks} automated audits`,
-                color: data.compliant_percentage >= 80 ? "text-emerald-500" : "text-amber-500",
+                color: data.compliant_percentage >= 80 ? "text-emerald-400" : "text-amber-400",
+                stripe: "border-l-[3px] border-l-emerald-500",
               },
               {
                 title: "Overdue Statutory Returns",
                 value: data.overdue_filings,
                 icon: IconFileText,
                 description: `Out of ${data.total_filings} filings`,
-                color: data.overdue_filings > 0 ? "text-amber-500" : "text-emerald-500",
+                color: data.overdue_filings > 0 ? "text-amber-400" : "text-emerald-400",
+                stripe: "border-l-[3px] border-l-amber-500",
               },
               {
                 title: "Critical Safety Notices",
                 value: data.critical_alerts,
                 icon: IconAlertTriangle,
                 description: "Failed high-severity checks",
-                color: data.critical_alerts > 0 ? "text-red-500" : "text-emerald-500",
+                color: data.critical_alerts > 0 ? "text-red-400" : "text-emerald-400",
+                stripe: "border-l-[3px] border-l-red-500",
               },
             ].map((stat, i) => (
               <motion.div key={stat.title} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <Card className="border-white/10 bg-[#0e141d]">
+                <Card className={`border-white/10 bg-[#0e141d] ${stat.stripe} hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5 shadow-sm`}>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-muted-foreground">{stat.title}</p>
-                        <p className={`text-3xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1">{stat.description}</p>
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.title}</p>
+                        <p className={`text-3xl font-extrabold mt-1 tracking-tight ${stat.color}`}>{stat.value}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1.5 font-medium">{stat.description}</p>
                       </div>
-                      <div className={`${stat.color} opacity-20`}>
-                        <stat.icon size={44} />
+                      <div className={`${stat.color} opacity-20 p-2.5 rounded-xl bg-white/[0.03]`}>
+                        <stat.icon size={36} />
                       </div>
                     </div>
                   </CardContent>
@@ -559,54 +580,62 @@ export default function DashboardPage() {
 
           {/* Mine Officer KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-white/10 bg-[#0e141d]">
+            <Card className="border-white/10 bg-[#0e141d] border-l-[3px] border-l-emerald-500 hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Colliery Safety Rating</p>
-                    <p className="text-3xl font-bold mt-1 text-emerald-400">88.5%</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">Above DGMS 80% threshold</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Colliery Safety Rating</p>
+                    <p className="text-3xl font-extrabold mt-1 tracking-tight text-emerald-400">88.5%</p>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 font-medium">Above DGMS 80% threshold</p>
                   </div>
-                  <IconShieldCheck size={44} className="text-emerald-500 opacity-20" />
+                  <div className="text-emerald-400 opacity-20 p-2.5 rounded-xl bg-white/[0.03]">
+                    <IconShieldCheck size={36} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-white/10 bg-[#0e141d]">
+            <Card className="border-white/10 bg-[#0e141d] border-l-[3px] border-l-amber-500 hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Pending Statutory Returns</p>
-                    <p className="text-3xl font-bold mt-1 text-amber-400">2 Returns</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">Due within 30 days</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pending Statutory Returns</p>
+                    <p className="text-3xl font-extrabold mt-1 tracking-tight text-amber-400">2 Returns</p>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 font-medium">Due within 30 days</p>
                   </div>
-                  <IconFileText size={44} className="text-amber-500 opacity-20" />
+                  <div className="text-amber-400 opacity-20 p-2.5 rounded-xl bg-white/[0.03]">
+                    <IconFileText size={36} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-white/10 bg-[#0e141d]">
+            <Card className="border-white/10 bg-[#0e141d] border-l-[3px] border-l-red-500 hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Active Pit Face Hazards</p>
-                    <p className="text-3xl font-bold mt-1 text-red-400">{violations.filter(v => v.status === "open").length || 3}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">CAPA remediation required</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Active Pit Face Hazards</p>
+                    <p className="text-3xl font-extrabold mt-1 tracking-tight text-red-400">{violations.filter(v => v.status === "open").length || 3}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 font-medium">CAPA remediation required</p>
                   </div>
-                  <IconAlertTriangle size={44} className="text-red-500 opacity-20" />
+                  <div className="text-red-400 opacity-20 p-2.5 rounded-xl bg-white/[0.03]">
+                    <IconAlertTriangle size={36} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-white/10 bg-[#0e141d]">
+            <Card className="border-white/10 bg-[#0e141d] border-l-[3px] border-l-sky-500 hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Contractor PME Medical %</p>
-                    <p className="text-3xl font-bold mt-1 text-sky-400">94.2%</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">Mines Rules 1955 compliant</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Contractor PME Medical %</p>
+                    <p className="text-3xl font-extrabold mt-1 tracking-tight text-sky-400">94.2%</p>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 font-medium">Mines Rules 1955 compliant</p>
                   </div>
-                  <IconUsers size={44} className="text-sky-500 opacity-20" />
+                  <div className="text-sky-400 opacity-20 p-2.5 rounded-xl bg-white/[0.03]">
+                    <IconUsers size={36} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -614,28 +643,36 @@ export default function DashboardPage() {
 
           {/* Quick Operational Actions */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Link href="/inspector" className="p-3.5 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-all group">
-              <IconDeviceMobile className="text-sky-400 mb-2 group-hover:scale-110 transition-transform" size={22} />
-              <div className="font-semibold text-xs text-white">Mobile Inspector</div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">GPS pit face logging (offline-ready)</div>
+            <Link href="/inspector" className="p-4 rounded-xl border border-white/10 bg-[#0e141d] hover:bg-[#121a26] hover:border-sky-500/40 transition-all duration-200 group shadow-sm hover:-translate-y-0.5">
+              <div className="p-2 rounded-lg bg-sky-500/10 w-fit mb-2.5 group-hover:scale-105 transition-transform">
+                <IconDeviceMobile className="text-sky-400" size={20} />
+              </div>
+              <div className="font-bold text-xs text-white">Mobile Inspector</div>
+              <div className="text-[11px] text-muted-foreground mt-1">GPS pit face logging (offline-ready)</div>
             </Link>
 
-            <Link href="/violations" className="p-3.5 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-all group">
-              <IconAlertOctagon className="text-red-400 mb-2 group-hover:scale-110 transition-transform" size={22} />
-              <div className="font-semibold text-xs text-white">Submit CAPA Action</div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">Clear open notices & fines</div>
+            <Link href="/violations" className="p-4 rounded-xl border border-white/10 bg-[#0e141d] hover:bg-[#121a26] hover:border-red-500/40 transition-all duration-200 group shadow-sm hover:-translate-y-0.5">
+              <div className="p-2 rounded-lg bg-red-500/10 w-fit mb-2.5 group-hover:scale-105 transition-transform">
+                <IconAlertOctagon className="text-red-400" size={20} />
+              </div>
+              <div className="font-bold text-xs text-white">Submit CAPA Action</div>
+              <div className="text-[11px] text-muted-foreground mt-1">Clear open notices & fines</div>
             </Link>
 
-            <Link href="/filings" className="p-3.5 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-all group">
-              <IconFileText className="text-emerald-400 mb-2 group-hover:scale-110 transition-transform" size={22} />
-              <div className="font-semibold text-xs text-white">Upload Statutory Return</div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">SMP, Form IV, Air Quality</div>
+            <Link href="/filings" className="p-4 rounded-xl border border-white/10 bg-[#0e141d] hover:bg-[#121a26] hover:border-emerald-500/40 transition-all duration-200 group shadow-sm hover:-translate-y-0.5">
+              <div className="p-2 rounded-lg bg-emerald-500/10 w-fit mb-2.5 group-hover:scale-105 transition-transform">
+                <IconFileText className="text-emerald-400" size={20} />
+              </div>
+              <div className="font-bold text-xs text-white">Upload Statutory Return</div>
+              <div className="text-[11px] text-muted-foreground mt-1">SMP, Form IV, Air Quality</div>
             </Link>
 
-            <Link href="/contractors" className="p-3.5 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-all group">
-              <IconUsers className="text-amber-400 mb-2 group-hover:scale-110 transition-transform" size={22} />
-              <div className="font-semibold text-xs text-white">Contractors Welfare</div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">Review worker health & PME</div>
+            <Link href="/contractors" className="p-4 rounded-xl border border-white/10 bg-[#0e141d] hover:bg-[#121a26] hover:border-amber-500/40 transition-all duration-200 group shadow-sm hover:-translate-y-0.5">
+              <div className="p-2 rounded-lg bg-amber-500/10 w-fit mb-2.5 group-hover:scale-105 transition-transform">
+                <IconUsers className="text-amber-400" size={20} />
+              </div>
+              <div className="font-bold text-xs text-white">Contractors Welfare</div>
+              <div className="text-[11px] text-muted-foreground mt-1">Review worker health & PME</div>
             </Link>
           </div>
 
@@ -725,7 +762,230 @@ export default function DashboardPage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* 3. SYSTEM ADMINISTRATOR DASHBOARD VIEW                              */}
+      {/* 3. FRONTLINE FIELD INSPECTOR DASHBOARD VIEW                         */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {currentRole === "frontline" && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          {/* Frontline Shift Banner */}
+          <div className="rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-emerald-500/5 to-transparent p-4 text-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <IconDeviceMobile className="h-4 w-4 text-amber-400 shrink-0" />
+                <span className="font-bold text-white uppercase tracking-wider text-[11px]">
+                  Pit-3 Working Face & Haulage Road • Shift I Field Supervision
+                </span>
+                <Badge variant="outline" className="text-[10px] text-amber-300 border-amber-500/30 font-mono">
+                  Sirdar ID: FIELD-001
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-neutral-300">
+                <span>GPS Fix: <strong className="text-emerald-400">Locked (&plusmn;3m)</strong></span>
+                <span>•</span>
+                <span>PWA Storage: <strong className="text-emerald-400">Offline Synced</strong></span>
+              </div>
+            </div>
+            <p className="text-muted-foreground mt-1.5 text-[11px] sm:text-xs leading-relaxed">
+              <strong>Pre-Shift Directive:</strong> Verify CH₄ gas concentration with flame safety lamp / continuous telemetry before authorizing entry. Inspect tell-tale strata extensometers along Bench 4. Check haul road berm height is at least 1.8m.
+            </p>
+          </div>
+
+          {/* Heading with Quick Action Buttons */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                <IconDeviceMobile className="h-6 w-6 text-amber-400" />
+                Frontline Field Inspection & Hazard Dashboard
+              </h1>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+                Real-time pit inspections, statutory safe limits, tell-tale strata logs & offline sync
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild size="sm" className="bg-amber-600 hover:bg-amber-500 text-white text-xs shadow-md">
+                <Link href="/inspector">
+                  <IconDeviceMobile size={14} className="mr-1.5" />
+                  Launch Mobile Field App
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="border-white/15 bg-white/5 text-xs text-white">
+                <Link href="/gis-map">
+                  <IconMap2 size={14} className="mr-1.5 text-amber-400" />
+                  GIS Pit Hazard Map
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          {/* Frontline KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-white/10 bg-[#0e141d]/80 shadow-md">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-xs text-muted-foreground uppercase font-semibold">
+                  Active Shift Hazards
+                </CardDescription>
+                <CardTitle className="text-2xl font-extrabold text-amber-400">
+                  {inspections.filter((i) => i.hazard_level === "critical" || i.hazard_level === "high").length || 3}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-[11px] text-neutral-400">1 Critical bench crack, 2 High gas/berm warnings</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-[#0e141d]/80 shadow-md">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-xs text-muted-foreground uppercase font-semibold">
+                  Methane Telemetry (CH₄)
+                </CardDescription>
+                <CardTitle className="text-2xl font-extrabold text-emerald-400">
+                  0.45% <span className="text-xs font-normal text-muted-foreground">in return</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-[11px] text-emerald-400 font-medium">Within safe limit (&lt; 0.75% CMR Reg 153)</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-[#0e141d]/80 shadow-md">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-xs text-muted-foreground uppercase font-semibold">
+                  Haul Road Berm Height
+                </CardDescription>
+                <CardTitle className="text-2xl font-extrabold text-red-400">
+                  1.6m <span className="text-xs font-normal text-muted-foreground">Bench 4</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-[11px] text-red-400 font-medium">Below tyre diameter (1.8m min) • Stop dumper</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-[#0e141d]/80 shadow-md">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-xs text-muted-foreground uppercase font-semibold">
+                  Offline Sync Queue
+                </CardDescription>
+                <CardTitle className="text-2xl font-extrabold text-sky-400">
+                  100% Synced
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-[11px] text-neutral-400">Local IndexedDB records committed to audit chain</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Frontline Shift Inspection Records & Statutory Limits Quick Guide */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left: Recent Field Observations */}
+            <Card className="border-white/10 bg-[#0e141d]/80 shadow-md">
+              <CardHeader className="pb-3 border-b border-white/10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                      <IconAlertOctagon className="h-4 w-4 text-amber-400" />
+                      Geo-Tagged Field Observations & Hazard Reports
+                    </CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground">
+                      Recent inspections logged by frontline staff across active mining faces
+                    </CardDescription>
+                  </div>
+                  <Button asChild size="sm" variant="outline" className="h-7 text-xs border-white/10">
+                    <Link href="/inspector">Open Log</Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 space-y-2">
+                {inspections.slice(0, 5).map((insp) => (
+                  <div
+                    key={insp.id}
+                    className="p-2.5 rounded-lg border border-white/5 bg-white/[0.02] flex items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-white truncate">{insp.area_inspected}</span>
+                        <Badge
+                          variant="outline"
+                          className={`text-[9px] px-1 py-0 font-bold uppercase ${
+                            insp.hazard_level === "critical"
+                              ? "border-red-500 text-red-400 bg-red-500/10"
+                              : insp.hazard_level === "high"
+                              ? "border-amber-500 text-amber-400 bg-amber-500/10"
+                              : "border-emerald-500 text-emerald-400 bg-emerald-500/10"
+                          }`}
+                        >
+                          {insp.hazard_level}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{insp.observations}</p>
+                    </div>
+                    <span className="text-[10px] text-neutral-400 shrink-0 font-mono">
+                      {insp.category}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Right: Sirdar Statutory Safe Limits Reference */}
+            <Card className="border-white/10 bg-[#0e141d]/80 shadow-md">
+              <CardHeader className="pb-3 border-b border-white/10">
+                <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                  <IconShieldCheck className="h-4 w-4 text-emerald-400" />
+                  Frontline Statutory Safe Limits (CMR 2017 & DGMS Circulars)
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Immediate pre-shift inspection guidelines for Mining Sirdars and Overmen
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3 space-y-2.5 text-xs">
+                <div className="p-2 rounded bg-white/[0.02] border border-white/5 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-emerald-400">Methane (CH₄) Gas Thresholds</span>
+                    <span className="text-[10px] font-mono text-neutral-400">CMR Reg. 153</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    General body &lt; 0.5%. Max permissible in return airway: <strong>0.75%</strong>. If reading touches <strong>1.25%</strong>, cut all electrical power immediately and withdraw all work persons.
+                  </p>
+                </div>
+
+                <div className="p-2 rounded bg-white/[0.02] border border-white/5 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-sky-400">Haul Road Berm & Lighting</span>
+                    <span className="text-[10px] font-mono text-neutral-400">CMR Reg. 106</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Berm height on open pit edges must equal or exceed largest dumper tyre diameter (minimum <strong>1.8 meters</strong>). Maximum road gradient must not exceed <strong>1 in 16</strong>.
+                  </p>
+                </div>
+
+                <div className="p-2 rounded bg-white/[0.02] border border-white/5 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-amber-400">Roof Strata Convergence</span>
+                    <span className="text-[10px] font-mono text-neutral-400">CMR Reg. 123</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Tell-tale extensometer dilation exceeding <strong>10mm/day</strong> indicates imminent strata cleavage. Immediate installation of high-tensile resin roof bolts required.
+                  </p>
+                </div>
+
+                <div className="p-2 rounded bg-white/[0.02] border border-white/5 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-purple-400">Inundation Safety Buffer</span>
+                    <span className="text-[10px] font-mono text-neutral-400">CMR Reg. 149</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    When mining within <strong>60 meters</strong> of waterlogged disused workings or water bodies, mandatory advance pilot borehole drilling (minimum 3m forward) is statutory.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* 4. PLATFORM OPERATIONS (SYSTEM ADMIN) DASHBOARD VIEW                 */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {currentRole === "admin" && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -778,88 +1038,96 @@ export default function DashboardPage() {
 
           {/* Admin KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-white/10 bg-[#0e141d]">
+            <Card className="border-white/10 bg-[#0e141d] border-l-[3px] border-l-emerald-500 hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Blockchain Ledger Status</p>
-                    <p className={`text-2xl font-bold mt-1 ${ledgerValid ? "text-emerald-400" : "text-amber-400"}`}>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Blockchain Ledger Status</p>
+                    <p className={`text-2xl font-extrabold mt-1 tracking-tight ${ledgerValid ? "text-emerald-400" : "text-amber-400"}`}>
                       {ledgerValid ? "100% INTACT" : "Validating..."}
                     </p>
-                    <p className="text-[11px] text-muted-foreground mt-1">Zero cryptographic breaches</p>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 font-medium">Zero cryptographic breaches</p>
                   </div>
-                  <IconLink size={44} className="text-emerald-500 opacity-20" />
+                  <div className="text-emerald-400 opacity-20 p-2.5 rounded-xl bg-white/[0.03]">
+                    <IconLink size={36} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-white/10 bg-[#0e141d]">
+            <Card className="border-white/10 bg-[#0e141d] border-l-[3px] border-l-purple-500 hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Chained Audit Blocks</p>
-                    <p className="text-3xl font-bold mt-1 text-purple-400">{auditBlocks.length > 0 ? auditBlocks[0].index + 1 : 42}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">SHA-256 Merkle Chained</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Chained Audit Blocks</p>
+                    <p className="text-3xl font-extrabold mt-1 tracking-tight text-purple-400">{auditBlocks.length > 0 ? auditBlocks[0].index + 1 : 42}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 font-medium">SHA-256 Merkle Chained</p>
                   </div>
-                  <IconShieldCheck size={44} className="text-purple-500 opacity-20" />
+                  <div className="text-purple-400 opacity-20 p-2.5 rounded-xl bg-white/[0.03]">
+                    <IconShieldCheck size={36} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-white/10 bg-[#0e141d]">
+            <Card className="border-white/10 bg-[#0e141d] border-l-[3px] border-l-sky-500 hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Regulatory Graph Clauses</p>
-                    <p className="text-3xl font-bold mt-1 text-sky-400">82 Nodes</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">Mines Act & CMR 2017</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Regulatory Graph Clauses</p>
+                    <p className="text-3xl font-extrabold mt-1 tracking-tight text-sky-400">82 Nodes</p>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 font-medium">Mines Act & CMR 2017</p>
                   </div>
-                  <IconCpu size={44} className="text-sky-500 opacity-20" />
+                  <div className="text-sky-400 opacity-20 p-2.5 rounded-xl bg-white/[0.03]">
+                    <IconCpu size={36} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-white/10 bg-[#0e141d]">
+            <Card className="border-white/10 bg-[#0e141d] border-l-[3px] border-l-emerald-500 hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">AI RAG Acceleration</p>
-                    <p className="text-2xl font-bold mt-1 text-emerald-400">Groq LPU Active</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">&lt; 120ms token latency</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">AI RAG Acceleration</p>
+                    <p className="text-2xl font-extrabold mt-1 tracking-tight text-emerald-400">Groq LPU Active</p>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 font-medium">&lt; 120ms token latency</p>
                   </div>
-                  <IconCpu size={44} className="text-emerald-500 opacity-20" />
+                  <div className="text-emerald-400 opacity-20 p-2.5 rounded-xl bg-white/[0.03]">
+                    <IconCpu size={36} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Admin Live Audit Ledger Section */}
-          <Card className="border-white/10 bg-[#0e141d]">
+          <Card className="border-white/10 bg-[#0e141d] shadow-sm">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-white">
                     <IconLink size={16} className="text-purple-400" />
                     Recent SHA-256 Blockchain Audit Blocks
                   </CardTitle>
-                  <CardDescription className="text-xs">Immutable cryptographically signed state transitions</CardDescription>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">Immutable cryptographically signed state transitions</CardDescription>
                 </div>
-                <Button asChild size="sm" variant="outline" className="text-xs border-purple-500/30 bg-purple-500/10 text-purple-300">
+                <Button asChild size="sm" variant="outline" className="text-xs border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20">
                   <Link href="/audit-trail">Full Ledger &rarr;</Link>
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-lg border border-white/5">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-white/10 text-muted-foreground">
-                      <th className="pb-2 font-medium">Index</th>
-                      <th className="pb-2 font-medium">Action</th>
-                      <th className="pb-2 font-medium">Actor</th>
-                      <th className="pb-2 font-medium">Block Hash (SHA-256)</th>
-                      <th className="pb-2 font-medium">Previous Hash</th>
-                      <th className="pb-2 font-medium text-right">Integrity</th>
+                    <tr className="border-b border-white/10 bg-white/[0.02] text-muted-foreground">
+                      <th className="py-2.5 px-3 font-semibold uppercase tracking-wider text-[10px]">Index</th>
+                      <th className="py-2.5 px-3 font-semibold uppercase tracking-wider text-[10px]">Action</th>
+                      <th className="py-2.5 px-3 font-semibold uppercase tracking-wider text-[10px]">Actor</th>
+                      <th className="py-2.5 px-3 font-semibold uppercase tracking-wider text-[10px]">Block Hash (SHA-256)</th>
+                      <th className="py-2.5 px-3 font-semibold uppercase tracking-wider text-[10px]">Previous Hash</th>
+                      <th className="py-2.5 px-3 font-semibold uppercase tracking-wider text-[10px] text-right">Integrity</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 font-mono text-[11px]">

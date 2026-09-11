@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { login } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   IconShieldCheck,
   IconGraph,
@@ -85,7 +86,7 @@ export default function LandingPage() {
       }
       router.push("/dashboard");
     } catch {
-      setError("Invalid credentials. Try REG-001, MINE-001, or ADMIN-001");
+      setError("Invalid credentials. Try REG-001, MINE-001, FIELD-001, or ADMIN-001");
     } finally {
       setLoading(false);
     }
@@ -173,53 +174,88 @@ export default function LandingPage() {
               </Button>
             </div>
 
-            {/* 3 Stakeholder Quick Access Buttons */}
-            <div className="max-w-2xl mx-auto pt-2">
-              <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wider">
-                ⚡ Select Stakeholder Persona to Enter Dashboard:
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {/* 4 Primary Stakeholder Quick Access Cards */}
+            <div className="max-w-5xl mx-auto pt-4">
+              <div className="flex items-center justify-between mb-3 px-1">
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                  ⚡ Select Primary Stakeholder Persona (SIH 2026):
+                </p>
+                <Link
+                  href="/sign-in"
+                  className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 font-medium"
+                >
+                  <span>Open Dedicated Sign-In &rarr;</span>
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                {/* 1. DGMS Regulator */}
                 <button
                   type="button"
                   onClick={() => executeLogin("REG-001", "pass123")}
-                  className="p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-left transition-all group flex flex-col justify-between"
+                  className="p-4 rounded-xl bg-[#0e141d] hover:bg-[#121a26] border border-white/10 border-l-[3px] border-l-emerald-500 text-left transition-all duration-200 group flex flex-col justify-between shadow-lg hover:shadow-emerald-950/20 hover:-translate-y-0.5"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="font-semibold text-emerald-300 text-xs group-hover:underline">DGMS Regulator</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">REG-001</span>
+                  <div>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-bold text-emerald-400 text-sm group-hover:text-emerald-300">DGMS Regulator</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-mono font-bold">REG-001</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1.5 leading-relaxed">National oversight, high-risk colliery sanctions & Sec. 22(1A) powers</div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground mt-1">National oversight, penalties & audits</div>
-                  <div className="text-[10px] text-emerald-400 font-semibold mt-2 flex items-center gap-1">
+                  <div className="text-xs text-emerald-400 font-semibold mt-3 flex items-center gap-1">
                     Enter as Regulator &rarr;
                   </div>
                 </button>
 
+                {/* 2. Colliery Management */}
                 <button
                   type="button"
                   onClick={() => executeLogin("MINE-001", "pass123")}
-                  className="p-3 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-left transition-all group flex flex-col justify-between"
+                  className="p-4 rounded-xl bg-[#0e141d] hover:bg-[#121a26] border border-white/10 border-l-[3px] border-l-sky-500 text-left transition-all duration-200 group flex flex-col justify-between shadow-lg hover:shadow-sky-950/20 hover:-translate-y-0.5"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="font-semibold text-sky-300 text-xs group-hover:underline">Mine Officer</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">MINE-001</span>
+                  <div>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-bold text-sky-400 text-sm group-hover:text-sky-300">Colliery Safety Mgr</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 font-mono font-bold">MINE-001</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1.5 leading-relaxed">Internal safety compliance, CAPA formulation & overdue returns</div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground mt-1">Field inspector, CAPA & filings</div>
-                  <div className="text-[10px] text-sky-400 font-semibold mt-2 flex items-center gap-1">
-                    Enter as Mine Officer &rarr;
+                  <div className="text-xs text-sky-400 font-semibold mt-3 flex items-center gap-1">
+                    Enter as Colliery Mgr &rarr;
                   </div>
                 </button>
 
+                {/* 3. Frontline Field Inspector */}
+                <button
+                  type="button"
+                  onClick={() => executeLogin("FIELD-001", "pass123")}
+                  className="p-4 rounded-xl bg-[#0e141d] hover:bg-[#121a26] border border-white/10 border-l-[3px] border-l-amber-500 text-left transition-all duration-200 group flex flex-col justify-between shadow-lg hover:shadow-amber-950/20 hover:-translate-y-0.5"
+                >
+                  <div>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-bold text-amber-400 text-sm group-hover:text-amber-300">Frontline Sirdar</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-mono font-bold">FIELD-001</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1.5 leading-relaxed">Pre-shift gas audits, strata crack logs, berm checks & offline PWA</div>
+                  </div>
+                  <div className="text-xs text-amber-400 font-semibold mt-3 flex items-center gap-1">
+                    Enter as Field Sirdar &rarr;
+                  </div>
+                </button>
+
+                {/* 4. Platform Administrator */}
                 <button
                   type="button"
                   onClick={() => executeLogin("ADMIN-001", "admin123")}
-                  className="p-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-left transition-all group flex flex-col justify-between"
+                  className="p-4 rounded-xl bg-[#0e141d] hover:bg-[#121a26] border border-white/10 border-l-[3px] border-l-purple-500 text-left transition-all duration-200 group flex flex-col justify-between shadow-lg hover:shadow-purple-950/20 hover:-translate-y-0.5"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="font-semibold text-purple-300 text-xs group-hover:underline">System Admin</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono">ADMIN-001</span>
+                  <div>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-bold text-purple-400 text-sm group-hover:text-purple-300">System Admin</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 font-mono font-bold">ADMIN-001</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1.5 leading-relaxed">Merkle Blockchain verification, Knowledge Graph sync & telemetry</div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground mt-1">Blockchain, knowledge graph & telemetry</div>
-                  <div className="text-[10px] text-purple-400 font-semibold mt-2 flex items-center gap-1">
+                  <div className="text-xs text-purple-400 font-semibold mt-3 flex items-center gap-1">
                     Enter as Admin &rarr;
                   </div>
                 </button>
@@ -232,22 +268,22 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto"
+            className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto"
           >
             {[
-              { value: "30", label: "Mines Monitored" },
-              { value: "25+", label: "Regulation Clauses" },
-              { value: "1,300+", label: "Filings Analyzed" },
-              { value: "88%", label: "Compliance Rate" },
+              { value: "30", label: "Mines Monitored", highlight: "text-emerald-400" },
+              { value: "25+", label: "Regulation Clauses", highlight: "text-sky-400" },
+              { value: "1,300+", label: "Filings Analyzed", highlight: "text-amber-400" },
+              { value: "88%", label: "Compliance Rate", highlight: "text-emerald-400" },
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="text-center p-4 rounded-xl bg-card border border-border/50"
+                className="text-center p-5 rounded-xl bg-[#0e141d] border border-white/10 shadow-sm"
               >
-                <div className="text-2xl md:text-3xl font-bold text-primary">
+                <div className={`text-2xl md:text-3xl font-extrabold tracking-tight ${stat.highlight}`}>
                   {stat.value}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
+                <div className="text-xs font-medium text-muted-foreground mt-1.5">
                   {stat.label}
                 </div>
               </div>
@@ -260,10 +296,10 @@ export default function LandingPage() {
       <section id="features" className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">
               What Makes This Different
             </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
               Not a static document repository. Not a yes/no checklist tool.
               Three capabilities combined that rarely appear together.
             </p>
@@ -278,14 +314,14 @@ export default function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
               >
-                <Card className="h-full border-border/50 hover:border-primary/30 transition-colors group">
+                <Card className="h-full bg-[#0e141d] border-white/10 hover:border-white/20 transition-all duration-200 group shadow-sm hover:-translate-y-0.5">
                   <CardHeader className="pb-3">
                     <div
-                      className={`w-10 h-10 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}
+                      className={`w-10 h-10 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center mb-3 group-hover:scale-105 transition-transform`}
                     >
                       <feature.icon size={20} className="text-white" />
                     </div>
-                    <CardTitle className="text-base">
+                    <CardTitle className="text-base font-bold text-white">
                       {feature.title}
                     </CardTitle>
                   </CardHeader>
@@ -356,18 +392,18 @@ export default function LandingPage() {
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
             className="w-full max-w-sm"
           >
-            <Card className="w-full shadow-2xl border-white/15 bg-[#0d1218] text-white">
-              <CardHeader className="text-center pb-2 pt-6">
+            <Card className="w-full shadow-2xl border-white/15 bg-[#0e141d] text-white backdrop-blur-xl">
+              <CardHeader className="text-center pb-3 pt-6">
                 <AegisLogo size={44} className="mx-auto mb-2" />
-                <CardTitle className="text-xl font-bold">Sign In to Aegis</CardTitle>
+                <CardTitle className="text-xl font-extrabold tracking-tight">Sign In to Aegis</CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Ministry of Coal & DGMS Statutory Portal
                 </p>
               </CardHeader>
-              <CardContent className="p-5">
+              <CardContent className="p-6 pt-2">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="userId" className="text-xs text-neutral-300">
+                    <Label htmlFor="userId" className="text-xs font-semibold text-neutral-300">
                       User Designation ID
                     </Label>
                     <Input
@@ -376,11 +412,11 @@ export default function LandingPage() {
                       value={userId}
                       onChange={(e) => setUserId(e.target.value)}
                       required
-                      className="bg-white/5 border-white/15 text-white h-10 text-sm"
+                      className="bg-white/5 border-white/15 text-white h-10 text-sm focus:border-emerald-500 font-mono"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="password" className="text-xs text-neutral-300">
+                    <Label htmlFor="password" className="text-xs font-semibold text-neutral-300">
                       Password
                     </Label>
                     <Input
@@ -390,17 +426,17 @@ export default function LandingPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="bg-white/5 border-white/15 text-white h-10 text-sm"
+                      className="bg-white/5 border-white/15 text-white h-10 text-sm focus:border-emerald-500"
                     />
                   </div>
                   {error && (
-                    <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-2 rounded">
+                    <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded-lg">
                       {error}
                     </p>
                   )}
                   <Button
                     type="submit"
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold h-10"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold h-10 shadow-lg shadow-emerald-950/40"
                     disabled={loading}
                   >
                     {loading ? (
@@ -410,17 +446,17 @@ export default function LandingPage() {
                   </Button>
 
                   {/* 1-Click Role Presets */}
-                  <div className="pt-2 border-t border-white/10 space-y-2">
-                    <p className="text-[11px] text-muted-foreground text-center font-medium">
-                      ⚡ 1-Click Stakeholder Evaluation Credentials:
+                  <div className="pt-3 border-t border-white/10 space-y-2">
+                    <p className="text-[11px] text-muted-foreground text-center font-semibold tracking-wide uppercase">
+                      ⚡ Quick Stakeholder Evaluation Access:
                     </p>
-                    <div className="grid grid-cols-3 gap-1.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => executeLogin("REG-001", "pass123")}
-                        className="text-[10px] px-1 h-9 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 flex flex-col items-center justify-center leading-tight"
+                        className="text-[10px] px-1 h-10 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 flex flex-col items-center justify-center leading-tight hover:border-emerald-500"
                       >
                         <span className="font-bold">Regulator</span>
                         <span className="text-[9px] text-emerald-400/80 font-mono">REG-001</span>
@@ -430,21 +466,40 @@ export default function LandingPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => executeLogin("MINE-001", "pass123")}
-                        className="text-[10px] px-1 h-9 border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 flex flex-col items-center justify-center leading-tight"
+                        className="text-[10px] px-1 h-10 border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 flex flex-col items-center justify-center leading-tight hover:border-sky-500"
                       >
-                        <span className="font-bold">Mine Officer</span>
+                        <span className="font-bold">Colliery Mgr</span>
                         <span className="text-[9px] text-sky-400/80 font-mono">MINE-001</span>
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
+                        onClick={() => executeLogin("FIELD-001", "pass123")}
+                        className="text-[10px] px-1 h-10 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 flex flex-col items-center justify-center leading-tight hover:border-amber-500"
+                      >
+                        <span className="font-bold">Frontline Sirdar</span>
+                        <span className="text-[9px] text-amber-400/80 font-mono">FIELD-001</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => executeLogin("ADMIN-001", "admin123")}
-                        className="text-[10px] px-1 h-9 border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 flex flex-col items-center justify-center leading-tight"
+                        className="text-[10px] px-1 h-10 border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 flex flex-col items-center justify-center leading-tight hover:border-purple-500"
                       >
                         <span className="font-bold">Admin</span>
                         <span className="text-[9px] text-purple-400/80 font-mono">ADMIN-001</span>
                       </Button>
+                    </div>
+
+                    <div className="pt-2 text-center">
+                      <Link
+                        href="/sign-in"
+                        className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1 transition-colors"
+                      >
+                        <span>Open Full Statutory Stakeholder Gateway &rarr;</span>
+                      </Link>
                     </div>
                   </div>
                 </form>

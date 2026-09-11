@@ -180,6 +180,142 @@ def create_inspection(payload: InspectionCreate, db: Session = Depends(get_db)):
     }
 
 
+class HazardSimulationRequest(BaseModel):
+    scenario_type: str = "methane_slope"  # methane_slope | environmental_ec | contractor_labor
+    mine_id: Optional[str] = None
+    custom_notes: Optional[str] = None
+
+
+@router.post("/simulate-hazard")
+def simulate_hazard(payload: HazardSimulationRequest, db: Session = Depends(get_db)):
+    """Simulate a critical statutory hazard, inject into database, and record in Merkle ledger."""
+    # Find target mine
+    target_mine_id = payload.mine_id or "MINE-04"
+    mine = db.query(DBMine).filter(DBMine.id == target_mine_id).first()
+    if not mine:
+        mine = db.query(DBMine).first()
+        target_mine_id = mine.id if mine else "MINE-01"
+
+    ts = datetime.utcnow()
+    inspection_id = f"INSP-SIM-{uuid.uuid4().hex[:6].upper()}"
+    violation_id = f"VIOL-SIM-{uuid.uuid4().hex[:6].upper()}"
+
+    scenario_map = {
+        "methane_slope": {
+            "category": "ventilation",
+            "hazard_level": "critical",
+            "area": "Shaft-2 Pit #4 Return Airway",
+            "title": "Catastrophic Breach: CMR 2017 Reg. 153 (CH4 > 0.85%) & Reg. 106 Bench Instability",
+            "obs": "Multi-gas telemetric sensor detected CH4 concentration spike to 0.88% (threshold 0.75%). Geotechnical radar recorded 14mm bench crest subsidence.",
+            "penalty": 500000.0,
+            "escalation_tier": 3,
+            "due_days": 2,
+            "statute": "CMR 2017 Reg. 153 & Mines Act Sec. 22(1A)",
+        },
+        "environmental_ec": {
+            "category": "environmental",
+            "hazard_level": "high",
+            "area": "Discharge Outlet #1 & Overburden Dump",
+            "title": "MoEF&CC Environmental Clearance Lapsed & SPCB Water Act Discharge Violation",
+            "obs": "Untreated acidic mine drainage discharge recorded TSS 145 mg/l (limit 100 mg/l). Progressive bio-reclamation 4 months overdue.",
+            "penalty": 300000.0,
+            "escalation_tier": 2,
+            "due_days": 5,
+            "statute": "Environment (Protection) Act 1986 & Water Act 1974",
+        },
+        "contractor_labor": {
+            "category": "labor",
+            "hazard_level": "high",
+            "area": "Pithead Lamp Room & Incline Portal",
+            "title": "Mines Rules 1955 Breach: Uncertified Contract Labor Without IME Form O",
+            "obs": "Surprise inspection revealed 28 contractor workers deployed without statutory Form B registration and valid Initial Medical Examination.",
+            "penalty": 150000.0,
+            "escalation_tier": 2,
+            "due_days": 4,
+            "statute": "Mines Rules 1955 Rule 29B & 48",
+        },
+    }
+
+    sc_config = scenario_map.get(payload.scenario_type, scenario_map["methane_slope"])
+    if payload.custom_notes:
+        sc_config["obs"] += f" Note: {payload.custom_notes}"
+
+    # 1. Insert DBInspection
+    inspection = DBInspection(
+        id=inspection_id,
+        mine_id=target_mine_id,
+        inspector_id="DGMS-SIMULATOR",
+        inspector_name="DGMS Automated Telemetry Watchdog",
+        inspected_at=ts,
+        latitude=mine.latitude if mine else 23.74,
+        longitude=mine.longitude if mine else 86.41,
+        area_inspected=sc_config["area"],
+        category=sc_config["category"],
+        status="verified",
+        observations=sc_config["obs"],
+        hazard_level=sc_config["hazard_level"],
+        offline_synced=0,
+    )
+    db.add(inspection)
+
+    # 2. Insert DBViolation
+    due_dt = ts + timedelta(days=sc_config["due_days"])
+    violation = DBViolation(
+        id=violation_id,
+        inspection_id=inspection_id,
+        mine_id=target_mine_id,
+        title=sc_config["title"],
+        description=sc_config["obs"],
+        severity=sc_config["hazard_level"],
+        status="open",
+        penalty_inr=sc_config["penalty"],
+        detected_at=ts,
+        due_date=due_dt,
+        escalation_tier=sc_config["escalation_tier"],
+    )
+    db.add(violation)
+
+    # 3. Elevate mine risk score
+    if mine:
+        mine.overall_risk_score = min(98.5, mine.overall_risk_score + 18.0)
+
+    db.commit()
+
+    # 4. Cryptographic Blockchain Audit Entry
+    block = record_audit_block(
+        db=db,
+        action="HAZARD_SIMULATION_INJECTED",
+        actor_id="SIH_EVALUATOR",
+        entity_id=violation_id,
+        payload_data={
+            "scenario": payload.scenario_type,
+            "mine_id": target_mine_id,
+            "mine_name": mine.name if mine else target_mine_id,
+            "statute": sc_config["statute"],
+            "severity": sc_config["hazard_level"],
+            "penalty_inr": sc_config["penalty"],
+            "due_date": due_dt.isoformat(),
+        },
+    )
+
+    return {
+        "status": "success",
+        "scenario": payload.scenario_type,
+        "mine_id": target_mine_id,
+        "mine_name": mine.name if mine else target_mine_id,
+        "inspection_id": inspection_id,
+        "violation_id": violation_id,
+        "title": sc_config["title"],
+        "hazard_level": sc_config["hazard_level"],
+        "penalty_inr": sc_config["penalty"],
+        "due_date": due_dt.isoformat(),
+        "block_index": block.index,
+        "block_hash": block.block_hash,
+        "statute": sc_config["statute"],
+        "new_risk_score": mine.overall_risk_score if mine else 85.0,
+    }
+
+
 # ── Violations & CAPA Endpoints ───────────────────────────────────────────────
 
 @router.get("/violations")

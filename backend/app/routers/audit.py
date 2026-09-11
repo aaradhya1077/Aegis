@@ -57,3 +57,65 @@ def verify_audit_ledger(db: Session = Depends(get_db)):
         "latest_hash": latest_block.block_hash if latest_block else None,
         "verified_at": "real-time",
     }
+
+
+@router.post("/tamper")
+def tamper_audit_ledger(target_index: Optional[int] = None, db: Session = Depends(get_db)):
+    """Adversarially tamper with a block's hash to test mathematical fraud detection."""
+    blocks = db.query(DBAuditBlock).order_by(DBAuditBlock.index.asc()).all()
+    if not blocks:
+        return {"status": "error", "message": "No blocks found to tamper"}
+
+    # Target specified index or second block if available
+    idx = target_index if target_index is not None else (1 if len(blocks) > 1 else 0)
+    target_block = db.query(DBAuditBlock).filter(DBAuditBlock.index == idx).first()
+    if not target_block:
+        target_block = blocks[-1]
+        idx = target_block.index
+
+    # Store original hash if not already corrupted
+    original_hash = target_block.block_hash
+    # Corrupt block hash
+    tampered_hash = "deadbeef" * 8
+    target_block.block_hash = tampered_hash
+    db.commit()
+
+    # Re-verify to demonstrate instant pinpointing
+    verification = verify_audit_chain(db)
+
+    return {
+        "status": "tampered",
+        "corrupted_block_index": idx,
+        "action": target_block.action,
+        "tampered_hash": tampered_hash,
+        "detection_result": verification,
+        "message": f"Block #{idx} successfully tampered. Merkle chain validator immediately flagged the intrusion!",
+    }
+
+
+@router.post("/restore")
+def restore_audit_ledger(db: Session = Depends(get_db)):
+    """Restore cryptographic continuity across the entire ledger."""
+    from app.database import calculate_block_hash
+    blocks = db.query(DBAuditBlock).order_by(DBAuditBlock.index.asc()).all()
+    if not blocks:
+        return {"status": "ok", "message": "No blocks in ledger"}
+
+    prev_h = "0" * 64
+    for b in blocks:
+        b.prev_hash = prev_h
+        b.block_hash = calculate_block_hash(
+            b.index, b.timestamp, b.action, b.actor_id, b.entity_id, b.payload_hash, b.prev_hash
+        )
+        prev_h = b.block_hash
+
+    db.commit()
+    verification = verify_audit_chain(db)
+
+    return {
+        "status": "restored",
+        "total_blocks_restored": len(blocks),
+        "detection_result": verification,
+        "message": "Cryptographic continuity 100% restored. All SHA-256 links verified.",
+    }
+

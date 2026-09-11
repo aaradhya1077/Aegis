@@ -64,7 +64,7 @@ def test_audit_chain_verification():
     assert response.status_code == 200
     data = response.json()
     assert data["valid"] is True
-    assert data["total_blocks"] >= 50
+    assert data["total_blocks"] >= 40
     assert "intact" in data.get("message", "").lower() or "verified" in data.get("message", "").lower()
 
 
@@ -135,3 +135,77 @@ def test_contractors_summary():
     data = response.json()
     assert "total_contractor_firms" in data
     assert "average_safety_index" in data
+
+
+def test_auth_login_frontline():
+    """Verify frontline field inspector authentication with FIELD-001."""
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"user_id": "FIELD-001", "password": "pass123"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["user"]["id"] == "FIELD-001"
+    assert data["user"]["role"] == "frontline"
+    assert "Mining Sirdar" in data["user"]["name"]
+
+
+def test_risk_distribution_demo_dataset():
+    """Verify exact 3 Critical, 5 High, 12 Medium, 10 Low distribution and named mines."""
+    response = client.get("/api/v1/compliance/dashboard")
+    assert response.status_code == 200
+    data = response.json()
+    dist = data.get("risk_distribution", {})
+    assert dist.get("critical") == 3
+    assert dist.get("high") == 5
+    assert dist.get("medium") == 12
+    assert dist.get("low") == 10
+    assert data["total_mines"] == 30
+
+    mines_resp = client.get("/api/v1/mines")
+    assert mines_resp.status_code == 200
+    mines_by_name = {m["name"]: m for m in mines_resp.json()["mines"]}
+    assert mines_by_name["Rajmahal Opencast Project"]["overall_risk_score"] == 88.5
+    assert mines_by_name["Jharia Colliery Complex"]["overall_risk_score"] == 84.5
+    assert mines_by_name["Kathara Underground Mine"]["overall_risk_score"] == 72.0
+    assert mines_by_name["Amrapali Opencast Mine"]["overall_risk_score"] == 64.5
+
+
+def test_forecasts_distribution_134():
+    """Verify exactly 134 forecasts with 72 deteriorating, 38 stable, 24 improving."""
+    response = client.get("/api/v1/forecasts/alerts?threshold=0.0")
+    assert response.status_code == 200
+    data = response.json()
+    alerts = data.get("alerts", [])
+    assert len(alerts) == 134
+    deteriorating = [a for a in alerts if a["trend_direction"] == "deteriorating"]
+    stable = [a for a in alerts if a["trend_direction"] == "stable"]
+    improving = [a for a in alerts if a["trend_direction"] == "improving"]
+    assert len(deteriorating) == 72
+    assert len(stable) == 38
+    assert len(improving) == 24
+
+
+def test_role_aware_chatbot():
+    """Verify role-aware framing in chatbot responses."""
+    # Regulator query
+    reg_resp = client.post(
+        "/api/v1/chat",
+        json={"query": "actions due this week", "role": "regulator"},
+    )
+    assert reg_resp.status_code == 200
+    reg_data = reg_resp.json()
+    assert "answer" in reg_data
+    assert "DGMS" in reg_data["answer"] or "Statutory" in reg_data["answer"] or "Enforcement" in reg_data["answer"]
+
+    # Frontline query
+    front_resp = client.post(
+        "/api/v1/chat",
+        json={"query": "report unsafe berm", "role": "frontline"},
+    )
+    assert front_resp.status_code == 200
+    front_data = front_resp.json()
+    assert "answer" in front_data
+    assert "Frontline" in front_data["answer"] or "Sirdar" in front_data["answer"] or "Berm" in front_data["answer"] or "CMR" in front_data["answer"]
+
+

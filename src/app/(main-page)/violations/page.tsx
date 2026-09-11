@@ -25,6 +25,79 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 
+function ViolationTimer({ dueDate }: { dueDate: string }) {
+  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isOverdue: boolean }>({
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    isOverdue: false,
+  });
+
+  useEffect(() => {
+    const update = () => {
+      const diff = new Date(dueDate).getTime() - Date.now();
+      const isOverdue = diff <= 0;
+      const absDiff = Math.abs(diff);
+      const hours = Math.floor(absDiff / (1000 * 60 * 60));
+      const minutes = Math.floor((absDiff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((absDiff % (1000 * 60)) / 1000);
+      setTimeLeft({ hours, minutes, seconds, isOverdue });
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [dueDate]);
+
+  if (timeLeft.isOverdue) {
+    return (
+      <div className="flex items-center gap-1.5 text-[11px] text-red-400 font-mono font-bold bg-red-950/40 px-2 py-0.5 rounded border border-red-500/30 animate-pulse">
+        <IconClock size={12} className="text-red-400" />
+        OVERDUE: +{timeLeft.hours}h {timeLeft.minutes}m (Sec 72C Penalties Accruing)
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 text-[11px] text-amber-400 font-mono font-semibold bg-amber-950/30 px-2 py-0.5 rounded border border-amber-500/30">
+      <IconClock size={12} className="text-amber-400" />
+      {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s to Escalation
+    </div>
+  );
+}
+
+function EscalationMatrix({ tier }: { tier: number }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1 mt-2 text-[10px]">
+      <span className="text-muted-foreground mr-1">Statutory Tier:</span>
+      <span
+        className={`px-1.5 py-0.5 rounded ${
+          tier >= 1 ? "bg-amber-500/20 text-amber-300 font-bold" : "bg-white/5 text-muted-foreground"
+        }`}
+      >
+        Tier 1: Mine Manager
+      </span>
+      <span className="text-muted-foreground">&rarr;</span>
+      <span
+        className={`px-1.5 py-0.5 rounded ${
+          tier >= 2 ? "bg-orange-500/20 text-orange-300 font-bold" : "bg-white/5 text-muted-foreground"
+        }`}
+      >
+        Tier 2: Subsidiary GM (+₹1L)
+      </span>
+      <span className="text-muted-foreground">&rarr;</span>
+      <span
+        className={`px-1.5 py-0.5 rounded ${
+          tier >= 3
+            ? "bg-red-500/30 text-red-300 font-bold animate-pulse"
+            : "bg-white/5 text-muted-foreground"
+        }`}
+      >
+        Tier 3: DGMS Regional Inspector (Stop-Work)
+      </span>
+    </div>
+  );
+}
+
 export default function ViolationsPage() {
   const [violations, setViolations] = useState<ViolationRecord[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -114,66 +187,66 @@ export default function ViolationsPage() {
 
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-card/50 backdrop-blur-sm border-border/60">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-rose-500/10 text-rose-500">
+        <Card className="bg-[#0e141d] border-white/10 border-l-[3px] border-l-red-500 shadow-sm hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-red-500/10 text-red-400">
               <IconShieldExclamation size={22} />
             </div>
             <div>
-              <div className="text-2xl font-bold">{stats?.open_violations ?? 0}</div>
-              <div className="text-xs text-muted-foreground">Active Open Violations</div>
+              <div className="text-2xl font-extrabold tracking-tight text-white">{stats?.open_violations ?? 0}</div>
+              <div className="text-xs font-medium text-muted-foreground mt-0.5">Active Open Violations</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm border-border/60">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-500">
+        <Card className="bg-[#0e141d] border-white/10 border-l-[3px] border-l-amber-500 shadow-sm hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
               <IconClock size={22} />
             </div>
             <div>
-              <div className="text-2xl font-bold">{stats?.capa_pending_review ?? 0}</div>
-              <div className="text-xs text-muted-foreground">CAPA Pending Verification</div>
+              <div className="text-2xl font-extrabold tracking-tight text-white">{stats?.capa_pending_review ?? 0}</div>
+              <div className="text-xs font-medium text-muted-foreground mt-0.5">CAPA Pending Verification</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm border-border/60">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+        <Card className="bg-[#0e141d] border-white/10 border-l-[3px] border-l-emerald-500 shadow-sm hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
               <IconCheck size={22} />
             </div>
             <div>
-              <div className="text-2xl font-bold">{stats?.resolved_violations ?? 0}</div>
-              <div className="text-xs text-muted-foreground">Remediated & Closed</div>
+              <div className="text-2xl font-extrabold tracking-tight text-white">{stats?.resolved_violations ?? 0}</div>
+              <div className="text-xs font-medium text-muted-foreground mt-0.5">Remediated & Closed</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm border-border/60">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
+        <Card className="bg-[#0e141d] border-white/10 border-l-[3px] border-l-purple-500 shadow-sm hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
               <IconCurrencyRupee size={22} />
             </div>
             <div>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-extrabold tracking-tight text-white">
                 ₹{((stats?.total_penalty_exposure_inr || 0) / 100000).toFixed(1)}L
               </div>
-              <div className="text-xs text-muted-foreground">Statutory Penalty Exposure</div>
+              <div className="text-xs font-medium text-muted-foreground mt-0.5">Statutory Penalty Exposure</div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border border-border/60 bg-muted/30">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border border-white/10 bg-[#0e141d] shadow-sm">
         <div className="flex items-center gap-2 flex-1 min-w-[240px] max-w-sm">
           <IconSearch size={15} className="text-muted-foreground" />
           <Input
             placeholder="Search breach by mine, division or keyword..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-8 text-xs bg-background/80"
+            className="h-8 text-xs bg-white/5 border-white/10 text-white placeholder:text-muted-foreground focus:border-emerald-500"
           />
         </div>
 
@@ -183,10 +256,10 @@ export default function ViolationsPage() {
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium capitalize transition-all ${
+              className={`px-2.5 py-1 text-xs rounded-md font-medium capitalize transition-all duration-150 ${
                 statusFilter === s
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-background/80 hover:bg-muted text-muted-foreground border border-border/40"
+                  ? "bg-emerald-600 text-white shadow-xs font-semibold"
+                  : "bg-white/5 hover:bg-white/10 text-muted-foreground border border-white/5"
               }`}
             >
               {s === "capa_submitted" ? "CAPA Submitted" : s}
@@ -198,10 +271,10 @@ export default function ViolationsPage() {
             <button
               key={sev}
               onClick={() => setSeverityFilter(sev)}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium capitalize transition-all ${
+              className={`px-2.5 py-1 text-xs rounded-md font-medium capitalize transition-all duration-150 ${
                 severityFilter === sev
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-background/80 hover:bg-muted text-muted-foreground border border-border/40"
+                  ? "bg-emerald-600 text-white shadow-xs font-semibold"
+                  : "bg-white/5 hover:bg-white/10 text-muted-foreground border border-white/5"
               }`}
             >
               {sev}
@@ -220,12 +293,14 @@ export default function ViolationsPage() {
           return (
             <Card
               key={viol.id}
-              className={`border transition-all ${
+              className={`border transition-all duration-200 shadow-sm ${
                 isResolved
-                  ? "border-border/40 opacity-75 bg-card/40"
+                  ? "border-white/5 opacity-75 bg-[#0e141d]/80 border-l-[3px] border-l-emerald-500/50"
                   : isCrit
-                  ? "border-rose-500/30 bg-rose-500/5 shadow-sm"
-                  : "border-border/70 bg-card hover:border-primary/40"
+                  ? "border-red-500/30 bg-[#0e141d] border-l-[3px] border-l-red-500 hover:border-red-500/50"
+                  : isHigh
+                  ? "border-amber-500/30 bg-[#0e141d] border-l-[3px] border-l-amber-500 hover:border-amber-500/50"
+                  : "border-white/10 bg-[#0e141d] border-l-[3px] border-l-sky-500 hover:border-white/20"
               }`}
             >
               <CardContent className="p-4">
@@ -251,6 +326,9 @@ export default function ViolationsPage() {
                     <h3 className="font-semibold text-base">{viol.title}</h3>
                     <p className="text-xs text-muted-foreground line-clamp-2">{viol.description}</p>
 
+                    {/* 3-Tier Statutory Escalation Matrix */}
+                    <EscalationMatrix tier={viol.escalation_tier || 1} />
+
                     {viol.capa && (
                       <div className="mt-2 p-2.5 rounded-md bg-muted/50 border border-border/40 text-xs space-y-1">
                         <div className="flex items-center justify-between">
@@ -267,15 +345,15 @@ export default function ViolationsPage() {
                   </div>
 
                   {/* Right Actions & Deadlines */}
-                  <div className="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end justify-between gap-3 min-w-[200px] border-t lg:border-t-0 pt-3 lg:pt-0 border-border/40">
-                    <div className="text-left lg:text-right">
-                      <div className="text-xs text-muted-foreground">Statutory Penalty</div>
-                      <div className="text-base font-bold text-foreground">
+                  <div className="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end justify-between gap-3 min-w-[240px] border-t lg:border-t-0 pt-3 lg:pt-0 border-border/40">
+                    <div className="text-left lg:text-right space-y-1">
+                      <div className="text-xs text-muted-foreground">Statutory Penalty Exposure</div>
+                      <div className="text-base font-bold font-mono text-white">
                         ₹{viol.penalty_inr.toLocaleString("en-IN")}
                       </div>
-                      <div className="text-[11px] text-rose-500 font-medium">
-                        Due by {new Date(viol.due_date).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
-                      </div>
+
+                      {/* Live Ticking Countdown Clock */}
+                      {!isResolved && <ViolationTimer dueDate={viol.due_date} />}
                     </div>
 
                     <div className="flex items-center gap-2">

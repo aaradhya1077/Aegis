@@ -76,10 +76,10 @@ export function AegisLogoWithText({
     <div className={`flex items-center gap-2.5 ${className}`}>
       <AegisLogo size={size} />
       <div className="flex flex-col">
-        <span className="text-base font-bold tracking-tight leading-tight">
+        <span className="text-base font-extrabold tracking-tight leading-tight bg-gradient-to-r from-white via-neutral-100 to-neutral-300 bg-clip-text text-transparent">
           Aegis
         </span>
-        <span className="text-[10px] font-medium text-muted-foreground tracking-widest uppercase leading-tight">
+        <span className="text-[9px] font-bold text-emerald-400 tracking-[0.2em] uppercase leading-tight font-mono">
           Compliance
         </span>
       </div>

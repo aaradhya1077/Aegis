@@ -109,6 +109,53 @@ def build_knowledge_graph(db: Session) -> nx.DiGraph:
                     relationship="applies_to"
                 )
 
+    # ── Add Circular nodes ────────────────────────────────────────────────
+    try:
+        from app.routers.regulations import DGMS_CIRCULARS
+        for circ in DGMS_CIRCULARS:
+            circ_node = f"circular:{circ['id']}"
+            G.add_node(
+                circ_node,
+                label=circ["circular_no"],
+                type="circular",
+                metadata={
+                    "title": circ["title"],
+                    "severity": circ["severity"],
+                    "authority": circ["authority"],
+                    "statutory_ref": circ["statutory_ref"],
+                    "summary": circ["summary"],
+                }
+            )
+            # Link to acts
+            for act in act_names:
+                if "Mines Act" in act:
+                    G.add_edge(circ_node, f"act:{act}", relationship="issued_under")
+    except Exception as e:
+        pass
+
+    # ── Add Violation nodes ───────────────────────────────────────────────
+    try:
+        from app.database import DBViolation
+        violations = db.query(DBViolation).all()
+        for viol in violations:
+            viol_node = f"violation:{viol.id}"
+            G.add_node(
+                viol_node,
+                label=viol.title,
+                type="violation",
+                metadata={
+                    "severity": viol.severity,
+                    "status": viol.status,
+                    "penalty_inr": viol.penalty_inr,
+                    "escalation_tier": viol.escalation_tier,
+                }
+            )
+            G.add_edge(viol_node, f"mine:{viol.mine_id}", relationship="occurred_at")
+            if viol.clause_id:
+                G.add_edge(viol_node, f"clause:{viol.clause_id}", relationship="breached_clause")
+    except Exception as e:
+        pass
+
     return G
 
 

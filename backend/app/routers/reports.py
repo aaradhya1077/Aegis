@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -51,7 +51,7 @@ def get_reports_summary(db: Session = Depends(get_db)) -> dict:
 
     return {
         "report_title": "DGMS National Coal Mines Statutory Compliance Dossier",
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "authority": "Directorate General of Mines Safety (DGMS), Dhanbad • Ministry of Coal",
         "kpis": {
             "total_mines": total_mines,
@@ -124,7 +124,7 @@ def export_mines_compliance_csv(db: Session = Depends(get_db)):
         ])
 
     output.seek(0)
-    filename = f"DGMS_Colliery_Compliance_Report_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+    filename = f"DGMS_Colliery_Compliance_Report_{datetime.now(timezone.utc).strftime('%Y%m%d')}.csv"
 
     return StreamingResponse(
         iter([output.getvalue()]),

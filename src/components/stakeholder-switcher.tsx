@@ -18,13 +18,16 @@ import {
   IconChevronDown,
   IconArrowsExchange,
   IconCheck,
+  IconPick,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
+
+export type StakeholderRole = "regulator" | "mine_officer" | "admin" | "frontline";
 
 export interface StakeholderProfile {
   id: string;
   name: string;
-  role: "regulator" | "mine_officer" | "admin";
+  role: StakeholderRole;
   title: string;
   organization: string;
   badgeColor: string;
@@ -32,7 +35,7 @@ export interface StakeholderProfile {
   icon: React.ComponentType<{ className?: string; size?: number }>;
 }
 
-export const STAKEHOLDERS: Record<string, StakeholderProfile> = {
+export const STAKEHOLDERS: Record<StakeholderRole, StakeholderProfile> = {
   regulator: {
     id: "REG-001",
     name: "Dr. Priya Sharma",
@@ -47,17 +50,27 @@ export const STAKEHOLDERS: Record<string, StakeholderProfile> = {
     id: "MINE-001",
     name: "Rajesh Kumar",
     role: "mine_officer",
-    title: "Mine Safety Manager / Agent",
-    organization: "BCCL Colliery Division • Jharia Seam #4",
+    title: "Colliery Safety Manager",
+    organization: "Coal India Limited • Colliery Safety & Compliance",
     badgeColor: "bg-sky-500/10 text-sky-400 border-sky-500/30",
     borderColor: "hover:border-sky-500/50",
     icon: IconHelmet,
+  },
+  frontline: {
+    id: "FIELD-001",
+    name: "Ramesh Mahto",
+    role: "frontline",
+    title: "Frontline Mining Sirdar",
+    organization: "Frontline Shift Supervision & Field Safety",
+    badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+    borderColor: "hover:border-amber-500/50",
+    icon: IconPick,
   },
   admin: {
     id: "ADMIN-001",
     name: "System Administrator",
     role: "admin",
-    title: "Infrastructure & Platform Admin",
+    title: "Platform Operations & IT",
     organization: "Ministry of Coal • Central IT Cell",
     badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/30",
     borderColor: "hover:border-purple-500/50",
@@ -66,7 +79,7 @@ export const STAKEHOLDERS: Record<string, StakeholderProfile> = {
 };
 
 export function StakeholderSwitcher({ variant = "header" }: { variant?: "header" | "compact" | "badge" }) {
-  const [activeRole, setActiveRole] = React.useState<"regulator" | "mine_officer" | "admin">("regulator");
+  const [activeRole, setActiveRole] = React.useState<StakeholderRole>("regulator");
 
   const syncUser = () => {
     if (typeof window !== "undefined") {
@@ -74,8 +87,8 @@ export function StakeholderSwitcher({ variant = "header" }: { variant?: "header"
         const stored = localStorage.getItem("user");
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed.role && STAKEHOLDERS[parsed.role]) {
-            setActiveRole(parsed.role as any);
+          if (parsed.role && STAKEHOLDERS[parsed.role as StakeholderRole]) {
+            setActiveRole(parsed.role as StakeholderRole);
             return;
           }
         }
@@ -95,7 +108,7 @@ export function StakeholderSwitcher({ variant = "header" }: { variant?: "header"
     };
   }, []);
 
-  const handleSwitch = (roleKey: "regulator" | "mine_officer" | "admin") => {
+  const handleSwitch = (roleKey: StakeholderRole) => {
     const profile = STAKEHOLDERS[roleKey];
     if (!profile) return;
 
@@ -150,7 +163,54 @@ export function StakeholderSwitcher({ variant = "header" }: { variant?: "header"
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-white/10 my-1" />
 
-        {(Object.keys(STAKEHOLDERS) as Array<"regulator" | "mine_officer" | "admin">).map((roleKey) => {
+        {/* Primary SIH 2026 Personas */}
+        {(["regulator", "mine_officer", "frontline"] as StakeholderRole[]).map((roleKey) => {
+          const item = STAKEHOLDERS[roleKey];
+          const Icon = item.icon;
+          const isSelected = activeRole === roleKey;
+
+          return (
+            <DropdownMenuItem
+              key={item.id}
+              onClick={() => handleSwitch(roleKey)}
+              className={`p-2 rounded-lg cursor-pointer my-0.5 flex items-start gap-2.5 transition-colors ${
+                isSelected
+                  ? "bg-white/10 text-white font-medium"
+                  : "text-neutral-300 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <span
+                className={`p-1.5 rounded-md border shrink-0 mt-0.5 ${item.badgeColor}`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-semibold text-white truncate">
+                    {item.title}
+                  </span>
+                  {isSelected && (
+                    <IconCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                  )}
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">
+                  {item.name} • <span className="font-mono text-[9px]">{item.id}</span>
+                </div>
+                <div className="text-[9px] text-neutral-400 truncate mt-0.5">
+                  {item.organization}
+                </div>
+              </div>
+            </DropdownMenuItem>
+          );
+        })}
+
+        <DropdownMenuSeparator className="bg-white/10 my-1" />
+        <DropdownMenuLabel className="px-2 py-1 text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+          Platform Operations (Internal)
+        </DropdownMenuLabel>
+
+        {/* Secondary Admin Role */}
+        {(["admin"] as StakeholderRole[]).map((roleKey) => {
           const item = STAKEHOLDERS[roleKey];
           const Icon = item.icon;
           const isSelected = activeRole === roleKey;

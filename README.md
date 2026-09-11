@@ -142,6 +142,7 @@ Aegis is pre-configured with `railway.json`, `Procfile`, and Dockerfiles for sea
 |---|---|---|---|
 | **DGMS Regulator** | `REG-001` | `pass123` | Full statutory oversight, penalty sanctions, nationwide cross-referencing |
 | **Mine Manager** | `MINE-001` | `pass123` | Subsidiary mine filings, internal audit readiness, corrective action plans |
+| **Frontline Sirdar** | `FIELD-001` | `pass123` | Pre-shift gas audits, strata crack logs, berm checks & offline PWA |
 | **System Administrator** | `ADMIN-001` | `admin123` | System telemetry, knowledge graph re-indexing, user role management |
 
 ---

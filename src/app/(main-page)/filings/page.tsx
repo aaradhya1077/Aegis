@@ -24,6 +24,7 @@ import {
   IconPlus,
   IconDownload,
   IconFileCertificate,
+  IconSparkles,
 } from "@tabler/icons-react";
 import {
   fetchFilings,
@@ -33,6 +34,7 @@ import {
   getReportsCsvUrl,
 } from "@/lib/api";
 import { toast } from "sonner";
+import { DocumentAuditDiff } from "@/components/document-audit-diff";
 
 const STATUS_CONFIG: Record<string, { color: string; icon: any; label: string }> = {
   compliant: { color: "#10B981", icon: IconCheck, label: "Compliant" },
@@ -69,6 +71,7 @@ export default function FilingsPage() {
   const [selectedType, setSelectedType] = useState(FILING_TYPES[0]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [diffModalOpen, setDiffModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -145,6 +148,17 @@ export default function FilingsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Neuro-Symbolic AI Scorecard Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDiffModalOpen(true)}
+            className="gap-1.5 text-xs border-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20"
+          >
+            <IconSparkles size={14} className="text-emerald-400" />
+            Neuro-Symbolic Diff Scorecard
+          </Button>
+
           {/* Download CSV Report Button */}
           <a href={getReportsCsvUrl()} target="_blank" rel="noopener noreferrer" download>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs">
@@ -256,19 +270,25 @@ export default function FilingsPage() {
       </div>
 
       {/* Status summary buttons */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 items-center p-3 rounded-xl border border-white/10 bg-[#0e141d] shadow-sm">
+        <span className="text-xs font-semibold text-muted-foreground mr-1 hidden sm:inline">Filter Status:</span>
         {Object.entries(statusCounts).map(([status, count]) => {
           const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+          const isSelected = statusFilter === status;
           return (
             <Button
               key={status}
-              variant={statusFilter === status ? "default" : "outline"}
+              variant={isSelected ? "default" : "outline"}
               size="sm"
-              onClick={() => setStatusFilter(statusFilter === status ? null : status)}
-              className="gap-1.5 text-xs"
+              onClick={() => setStatusFilter(isSelected ? null : status)}
+              className={`gap-1.5 text-xs h-8 font-semibold transition-all duration-150 ${
+                isSelected
+                  ? "text-white shadow-xs"
+                  : "border-white/10 bg-white/5 text-neutral-300 hover:text-white hover:bg-white/10"
+              }`}
               style={
-                statusFilter === status
-                  ? { backgroundColor: config.color, borderColor: config.color, color: "#fff" }
+                isSelected
+                  ? { backgroundColor: config.color, borderColor: config.color }
                   : {}
               }
             >
@@ -278,7 +298,7 @@ export default function FilingsPage() {
           );
         })}
         {statusFilter && (
-          <Button variant="ghost" size="sm" onClick={() => setStatusFilter(null)} className="text-xs">
+          <Button variant="ghost" size="sm" onClick={() => setStatusFilter(null)} className="text-xs text-muted-foreground hover:text-white h-8">
             Clear Filter
           </Button>
         )}
@@ -289,50 +309,53 @@ export default function FilingsPage() {
         <IconSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search by filing type, mine ID, or filename..."
-          className="pl-9 h-9 text-xs"
+          className="pl-9 h-9 text-xs border-white/10 bg-[#0e141d] text-white placeholder:text-muted-foreground focus:border-emerald-500 shadow-sm"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
       {/* Filing list */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {filtered.slice(0, 50).map((filing) => {
           const config = STATUS_CONFIG[filing.status] || STATUS_CONFIG.pending;
           return (
-            <Card key={filing.id} className="hover:border-border transition-colors">
+            <Card
+              key={filing.id}
+              className="border-white/10 bg-[#0e141d] hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
+              style={{ borderLeftWidth: "3px", borderLeftColor: config.color }}
+            >
               <CardContent className="py-3 px-4">
                 <div className="flex items-center gap-4">
                   <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: config.color + "15" }}
+                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: config.color + "18" }}
                   >
-                    <IconFileText size={16} style={{ color: config.color }} />
+                    <IconFileText size={18} style={{ color: config.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate">{filing.filing_type}</span>
+                      <span className="text-sm font-bold text-white truncate">{filing.filing_type}</span>
                       <Badge
-                        className="text-[10px] px-1.5"
+                        className="text-[10px] px-2 py-0.5 font-mono font-bold uppercase"
                         style={{
                           backgroundColor: config.color + "15",
                           color: config.color,
-                          border: `1px solid ${config.color}30`,
+                          border: `1px solid ${config.color}35`,
                         }}
                       >
                         {config.label}
                       </Badge>
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-0.5">
-                      <span className="font-mono">Mine: {filing.mine_id}</span>
-                      <span>Due: {new Date(filing.due_date).toLocaleDateString("en-IN")}</span>
-                      {filing.submitted_at && (
-                        <span>Submitted: {new Date(filing.submitted_at).toLocaleDateString("en-IN")}</span>
-                      )}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                      <span className="font-mono text-neutral-300 font-semibold">{filing.mine_id}</span>
+                      <span>·</span>
+                      <span>Due: {filing.due_date ? new Date(filing.due_date).toLocaleDateString("en-IN") : "Annual"}</span>
                       {filing.ocr_confidence && (
-                        <span className="text-emerald-400 font-medium">
-                          OCR: {(filing.ocr_confidence * 100).toFixed(0)}%
-                        </span>
+                        <>
+                          <span>·</span>
+                          <span className="text-emerald-400 font-mono">OCR: {(filing.ocr_confidence * 100).toFixed(0)}%</span>
+                        </>
                       )}
                     </div>
                   </div>
@@ -358,6 +381,13 @@ export default function FilingsPage() {
           Showing 50 of {filtered.length} filings
         </p>
       )}
+
+      {/* Neuro-Symbolic Document Verification Diff Modal */}
+      <DocumentAuditDiff
+        open={diffModalOpen}
+        onOpenChange={setDiffModalOpen}
+        initialFilingType={selectedType}
+      />
     </div>
   );
 }

@@ -37,6 +37,9 @@ interface Props {
   showHazards: boolean;
   onSelectMine: (mine: Mine) => void;
   mapStyle?: "standard" | "satellite";
+  showBlastRadius?: boolean;
+  showInundationBuffer?: boolean;
+  flyToCoordinates?: { lat: number; lng: number; zoom: number } | null;
 }
 
 export default function GisMapComponent({
@@ -47,6 +50,9 @@ export default function GisMapComponent({
   showHazards,
   onSelectMine,
   mapStyle = "standard",
+  showBlastRadius = false,
+  showInundationBuffer = false,
+  flyToCoordinates = null,
 }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -240,9 +246,47 @@ export default function GisMapComponent({
           });
           markersLayerRef.current.addLayer(circle);
         }
+
+        // Mandatory Blast Danger Clearance Zone (CMR 2017 Reg 164)
+        if (showBlastRadius && (mine.mine_type === "opencast" || mine.mine_type === "mixed")) {
+          const blastCircle = L.circle([mine.latitude, mine.longitude], {
+            color: "#DC2626",
+            fillColor: "#DC2626",
+            fillOpacity: 0.15,
+            dashArray: "4, 6",
+            radius: 7000,
+            weight: 1.5,
+          });
+          blastCircle.bindTooltip(`CMR Reg. 164 Blast Danger Zone: ${mine.name}`, { sticky: true });
+          markersLayerRef.current.addLayer(blastCircle);
+        }
+
+        // Monsoon Waterbody & Flood Inundation Buffer Zone (CMR Reg 152)
+        if (showInundationBuffer) {
+          const floodCircle = L.circle([mine.latitude, mine.longitude], {
+            color: "#0284C7",
+            fillColor: "#0284C7",
+            fillOpacity: 0.1,
+            dashArray: "2, 4",
+            radius: 11000,
+            weight: 1.2,
+          });
+          floodCircle.bindTooltip(`CMR Reg. 152 Monsoon Inundation Buffer: ${mine.name}`, { sticky: true });
+          markersLayerRef.current.addLayer(floodCircle);
+        }
       });
     });
-  }, [mines, selectedSubsidiary, riskFilter, onSelectMine]);
+  }, [mines, selectedSubsidiary, riskFilter, showBlastRadius, showInundationBuffer, onSelectMine]);
+
+  // Smooth Pan/Zoom to selected Coal Basin
+  useEffect(() => {
+    if (!mapInstanceRef.current || !flyToCoordinates) return;
+    mapInstanceRef.current.flyTo(
+      [flyToCoordinates.lat, flyToCoordinates.lng],
+      flyToCoordinates.zoom,
+      { duration: 1.2 }
+    );
+  }, [flyToCoordinates]);
 
   // Update Hazard Incident pins
   useEffect(() => {

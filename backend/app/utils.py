@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import jwt
 import bcrypt
@@ -32,7 +32,7 @@ def create_access_token(user_id: str, ttl_seconds: int = ACCESS_TOKEN_TTL_SECOND
     """Generate a signed cryptographic JWT access token."""
     payload = {
         "sub": user_id,
-        "exp": datetime.utcnow() + timedelta(seconds=ttl_seconds),
+        "exp": datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds),
         "type": "access"
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -42,7 +42,7 @@ def create_refresh_token(user_id: str) -> str:
     """Generate a signed cryptographic JWT refresh token."""
     payload = {
         "sub": user_id,
-        "exp": datetime.utcnow() + timedelta(days=7),
+        "exp": datetime.now(timezone.utc) + timedelta(days=7),
         "type": "refresh"
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)

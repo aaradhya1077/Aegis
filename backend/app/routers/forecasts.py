@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -10,27 +10,41 @@ router = APIRouter(prefix="/api/v1/forecasts", tags=["forecasts"])
 
 
 @router.get("/alerts", response_model=ForecastAlertsResponse)
-def forecast_alerts(threshold: float = Query(0.5)) -> ForecastAlertsResponse:
-    """All mines trending toward violations."""
+def forecast_alerts(
+    threshold: float = Query(0.0),
+    trend: str | None = Query(None),
+) -> ForecastAlertsResponse:
+    """All monitored statutory deadline forecasts across mines."""
     db = SessionLocal()
     try:
-        alerts = get_deteriorating_mines(db, threshold=threshold)
+        query = db.query(DBDeadlineForecast)
+        if threshold > 0.0:
+            query = query.filter(DBDeadlineForecast.predicted_risk >= threshold)
+        if trend:
+            query = query.filter(DBDeadlineForecast.trend_direction == trend)
 
-        items = [
-            ForecastResponse(
-                id=a["forecast_id"],
-                mine_id=a["mine_id"],
-                mine_name=a["mine_name"],
-                regulation_id=a["regulation_id"],
-                regulation_clause=a["regulation_clause"],
-                predicted_risk=a["predicted_risk"],
-                trend_direction=a["trend_direction"],
-                days_until_due=a["days_until_due"],
-                confidence=a["confidence"],
-                computed_at=datetime.utcnow(),
+        forecasts = query.order_by(DBDeadlineForecast.predicted_risk.desc()).all()
+
+        items = []
+        for fc in forecasts:
+            mine = db.query(DBMine).filter(DBMine.id == fc.mine_id).first()
+            reg = db.query(DBRegulation).filter(DBRegulation.id == fc.regulation_id).first()
+            clause_str = f"{reg.clause_number} ({reg.filing_type_required})" if reg else fc.regulation_id
+
+            items.append(
+                ForecastResponse(
+                    id=fc.id,
+                    mine_id=fc.mine_id,
+                    mine_name=mine.name if mine else fc.mine_id,
+                    regulation_id=fc.regulation_id,
+                    regulation_clause=clause_str,
+                    predicted_risk=fc.predicted_risk,
+                    trend_direction=fc.trend_direction,
+                    days_until_due=fc.days_until_due,
+                    confidence=fc.confidence,
+                    computed_at=fc.computed_at or datetime.now(timezone.utc),
+                )
             )
-            for a in alerts
-        ]
 
         return ForecastAlertsResponse(alerts=items, total=len(items))
     finally:

@@ -125,8 +125,9 @@ class StatutoryRAGEngine:
         query: str,
         groq_api_key: Optional[str] = None,
         db: Optional[Session] = None,
+        role: Optional[str] = None,
     ) -> dict[str, Any]:
-        """Execute full RAG pipeline: FAISS retrieval + Groq LLM synthesis."""
+        """Execute full RAG pipeline: FAISS retrieval + Groq LLM synthesis with role-aware framing."""
         top_clauses = self.search_regulations(query, top_k=4, db=db)
         api_key = groq_api_key or os.environ.get("GROQ_API_KEY")
 
@@ -171,8 +172,39 @@ class StatutoryRAGEngine:
                 if api_key:
                     break
 
+        # Role-specific guidance lens
+        role_lens = ""
+        if role == "regulator":
+            role_lens = (
+                "\n\nACTIVE LENS: DGMS REGULATOR (ENFORCEMENT & OVERSIGHT).\n"
+                "- Frame your answer strictly around statutory compliance verification, legal breaches, and DGMS notices.\n"
+                "- Emphasize statutory deadlines, risk escalation, prosecution sanctions under Mines Act Sec 72B/73, and stop-work orders under Sec 22(1A).\n"
+                "- Specify inspection priorities and evidentiary burden of proof for the colliery."
+            )
+        elif role == "mine_officer":
+            role_lens = (
+                "\n\nACTIVE LENS: COLLIERY MANAGEMENT (REMEDIATION & CAPA).\n"
+                "- Frame your answer around operational remediation, upcoming statutory deadlines, and CAPA submission.\n"
+                "- Highlight missing document sections, engineering countermeasures, and specific evidence required by DGMS to close violations.\n"
+                "- Provide practical timelines to cure non-compliance."
+            )
+        elif role == "frontline":
+            role_lens = (
+                "\n\nACTIVE LENS: FRONTLINE FIELD INSPECTOR / SIRDAR / OVERMAN (HAZARD & SAFETY).\n"
+                "- Frame your answer around on-site field hazards, immediate worker safety, and statutory shift inspections.\n"
+                "- Detail physical thresholds (gas limits under CMR Reg 153, strata convergence under Reg 123, berm heights under Reg 106).\n"
+                "- Advise on immediate voice-logged escalation and withdrawal procedures if danger is imminent."
+            )
+        elif role == "admin":
+            role_lens = (
+                "\n\nACTIVE LENS: PLATFORM OPERATIONS & SYSTEM ADMINISTRATION.\n"
+                "- Frame your answer around data ingestion pipelines, OCR extraction accuracy, blockchain audit log verification, and API telemetry.\n"
+                "- Detail cryptographic proof hashes and system health."
+            )
+
         if api_key:
             try:
+                api_key = api_key.strip()
                 from groq import Groq
                 client = Groq(api_key=api_key)
 
@@ -191,20 +223,20 @@ class StatutoryRAGEngine:
                     "- Note legal penalties for non-compliance (stop-work notices, compounding fees, prosecution under Sec 72B/73).\n"
                     "- Respond clearly with professional markdown structure, bullet points, and actionable colliery compliance steps.\n"
                     "- If the query is in Hindi or Hinglish, answer in clear Hindi/Hinglish with English statutory terms."
+                    f"{role_lens}"
                 )
 
                 user_prompt = (
                     f"User Query: {query}\n\n"
                     f"--- STATUTORY LEGAL CONTEXT RETRIEVED VIA FAISS VECTOR DATABASE ---\n"
                     f"{context_str}\n\n"
-                    "Provide an authoritative, clear, and actionable statutory compliance answer for the mine management/DGMS inspector:"
+                    "Provide an authoritative, clear, and actionable statutory compliance answer:"
                 )
 
                 candidate_models = [
                     "qwen/qwen3.8-27b",
+                    "qwen/qwen3.6-27b",
                     "openai/gpt-oss-120b",
-                    "llama-3.3-70b-versatile",
-                    "llama-3.1-8b-instant",
                     "groq/compound",
                 ]
 
@@ -221,11 +253,16 @@ class StatutoryRAGEngine:
                                 {"role": "user", "content": user_prompt},
                             ],
                             temperature=0.2,
-                            max_tokens=1024,
+                            max_tokens=650,
                         )
-                        answer = response.choices[0].message.content
-                        used_model = model_candidate
-                        break
+                        msg = response.choices[0].message
+                        content = (msg.content or "").strip()
+                        if not content and getattr(msg, "reasoning", None):
+                            content = msg.reasoning.strip()
+                        if content:
+                            answer = content
+                            used_model = model_candidate
+                            break
                     except Exception as model_err:
                         last_err = model_err
                         continue
@@ -243,7 +280,7 @@ class StatutoryRAGEngine:
             except Exception as e:
                 # Fallback to local synthesis if Groq call encounters error
                 error_msg = str(e)
-                fallback_answer = self._generate_extractive_fallback(query, top_clauses, note=f"Groq API note: {error_msg}")
+                fallback_answer = self._generate_extractive_fallback(query, top_clauses, note=f"Groq API note: {error_msg}", role=role)
                 return {
                     "answer": fallback_answer,
                     "sources": sources,
@@ -252,7 +289,7 @@ class StatutoryRAGEngine:
                 }
 
         # No Groq API Key provided — use FAISS Extractive Legal Synthesis
-        answer = self._generate_extractive_fallback(query, top_clauses)
+        answer = self._generate_extractive_fallback(query, top_clauses, role=role)
         return {
             "answer": answer,
             "sources": sources,
@@ -261,18 +298,28 @@ class StatutoryRAGEngine:
         }
 
     def _generate_extractive_fallback(
-        self, query: str, top_clauses: list[dict[str, Any]], note: Optional[str] = None
+        self, query: str, top_clauses: list[dict[str, Any]], note: Optional[str] = None, role: Optional[str] = None
     ) -> str:
-        """Create structured synthesis when Groq API key is absent."""
+        """Create structured synthesis when Groq API key is absent with role-aware framing."""
         if not top_clauses:
             return (
                 "No statutory regulations matched your query closely. "
                 "Please verify the query terms (e.g. 'Safety Management Plan', 'Reg. 104', 'Air Quality', 'Ventilation')."
             )
 
+        role_header = "Statutory Regulatory Analysis"
+        if role == "regulator":
+            role_header = "Regulatory Enforcement & Statutory Audit Analysis"
+        elif role == "mine_officer":
+            role_header = "Colliery Management Remediation & CAPA Guide"
+        elif role == "frontline":
+            role_header = "Frontline Field Safety & Hazard Inspection Guide"
+        elif role == "admin":
+            role_header = "Platform Operations & Telemetry Verification"
+
         lines = [
-            f"### 🛡️ Statutory Regulatory Analysis (FAISS Vector Retrieval)\n",
-            f"Based on semantic search over indexed statutory statutes for Indian coal mines, here are the applicable provisions:\n",
+            f"### 🛡️ {role_header} (FAISS Vector Retrieval)\n",
+            f"Based on grounded semantic indexing over statutory statutes for Indian coal mines, here are the applicable provisions:\n",
         ]
 
         if note:
@@ -287,10 +334,44 @@ class StatutoryRAGEngine:
                 f"* **Statutory Mandate**: {c['clause_text']}\n"
             )
 
-        lines.append(
-            "\n---\n"
-            "💡 *Tip: Provide a Groq API Key in settings for dynamic LLaMA-3 multi-turn reasoning and conversational summaries.*"
-        )
+        # Role-specific tailored closing guidance
+        if role == "regulator":
+            lines.append(
+                "\n---\n"
+                "⚖️ **DGMS Enforcement & Audit Lens:**\n"
+                "- **Statutory Escalation**: Failure to submit mandatory filings within the prescribed window incurs daily compounding penalties under Mines Act 1952 Sec. 72C.\n"
+                "- **Intervention Power**: Where imminent danger is observed (e.g. methane exceedance CMR Reg. 153 or strata instability Reg. 123), issue immediate Section 22(1A) prohibition order.\n"
+                "- **Evidence Audit**: Verify that submitted evidence contains qualified safety officer certification and NABL laboratory reports."
+            )
+        elif role == "mine_officer":
+            lines.append(
+                "\n---\n"
+                "🔧 **Colliery Management Remediation & CAPA Lens:**\n"
+                "- **Remediation Deadline**: Immediate submission required to avoid escalating compliance penalties.\n"
+                "- **Evidence Required for Closure**: Signed inspection report, geotechnical radar log, and verified photographic evidence.\n"
+                "- **Corrective Action**: Submit CAPA rectification plan through the Aegis Violations Tracker."
+            )
+        elif role == "frontline":
+            lines.append(
+                "\n---\n"
+                "🦺 **Frontline Sirdar / Overman Field Safety Lens:**\n"
+                "- **Immediate Shift Precautions**: Verify ventilation intake velocity (>1.2 m/s) and examine tell-tale roof convergence indicators prior to crew entry.\n"
+                "- **Hazard Reporting**: Use Mobile Field Inspector voice dictation to log any bench cracks or auxiliary fan stoppages.\n"
+                "- **Statutory Safety Threshold**: Automatic withdrawal of workers mandatory if CH4 exceeds 0.75% in return airway."
+            )
+        elif role == "admin":
+            lines.append(
+                "\n---\n"
+                "⚙️ **Platform Operations Telemetry Lens:**\n"
+                "- **Pipeline Ingestion**: All regulation clauses verified against FAISS IndexFlatIP vector cache.\n"
+                "- **Blockchain Proof**: Query event and statutory references sealed in the SHA-256 Merkle audit chain."
+            )
+        else:
+            lines.append(
+                "\n---\n"
+                "💡 *Tip: Provide a Groq API Key in settings for dynamic LLaMA-3 multi-turn reasoning and conversational summaries.*"
+            )
+
         return "\n".join(lines)
 
 

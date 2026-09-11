@@ -115,7 +115,8 @@ echo  STAKEHOLDER DEMO CREDENTIALS:
 echo  -------------------------------------------------------------------------
 echo  1. DGMS Regulator:       REG-001   /  pass123   (National Command)
 echo  2. Mine Safety Manager:  MINE-001  /  pass123   (Colliery Operations)
-echo  3. System Administrator: ADMIN-001 /  admin123  (Platform Telemetry)
+echo  3. Frontline Inspector:  FIELD-001 /  pass123   (Field Safety & Sirdar)
+echo  4. System Administrator: ADMIN-001 /  admin123  (Platform Telemetry)
 echo  -------------------------------------------------------------------------
 echo.
 echo  Keep the two opened command windows running.

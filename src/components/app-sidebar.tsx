@@ -65,7 +65,7 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const ROLE_NAV: Record<"regulator" | "mine_officer" | "admin", NavGroup[]> = {
+const ROLE_NAV: Record<"regulator" | "mine_officer" | "frontline" | "admin", NavGroup[]> = {
   regulator: [
     {
       label: "National Statutory Oversight",
@@ -90,7 +90,7 @@ const ROLE_NAV: Record<"regulator" | "mine_officer" | "admin", NavGroup[]> = {
   ],
   mine_officer: [
     {
-      label: "Mine Operations & Safety",
+      label: "Colliery Management & Safety",
       items: [
         { title: "Mine Operations Dashboard", url: "/dashboard", icon: IconChartBar },
         { title: "Mobile Field Inspector", url: "/inspector", icon: IconDeviceMobile, badge: "GPS" },
@@ -104,7 +104,25 @@ const ROLE_NAV: Record<"regulator" | "mine_officer" | "admin", NavGroup[]> = {
     {
       label: "Guidance & Compliance",
       items: [
-        { title: "Regulatory AI Assistant", url: "/chatbot", icon: IconMessageChatbot },
+        { title: "Colliery Safety AI Assistant", url: "/chatbot", icon: IconMessageChatbot },
+      ],
+    },
+  ],
+  frontline: [
+    {
+      label: "Frontline Shift Supervision",
+      items: [
+        { title: "Mobile Field Inspector", url: "/inspector", icon: IconDeviceMobile, badge: "PWA/GPS" },
+        { title: "Active Hazards & Violations", url: "/violations", icon: IconAlertOctagon },
+        { title: "GIS Spatial Pit Hazards", url: "/gis-map", icon: IconMap2 },
+        { title: "Shift Safety AI Assistant", url: "/chatbot", icon: IconMessageChatbot },
+      ],
+    },
+    {
+      label: "Colliery Overview",
+      items: [
+        { title: "Colliery Safety Dashboard", url: "/dashboard", icon: IconChartBar },
+        { title: "Mines Registry", url: "/mines", icon: IconBuildingFactory2 },
       ],
     },
   ],
@@ -131,7 +149,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
 
-  const [currentRole, setCurrentRole] = React.useState<"regulator" | "mine_officer" | "admin">("regulator");
+  const [currentRole, setCurrentRole] = React.useState<"regulator" | "mine_officer" | "frontline" | "admin">("regulator");
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [helpOpen, setHelpOpen] = React.useState(false);
 
@@ -145,7 +163,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         const stored = localStorage.getItem("user");
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed.role && ROLE_NAV[parsed.role as "regulator" | "mine_officer" | "admin"]) {
+          if (parsed.role && ROLE_NAV[parsed.role as keyof typeof ROLE_NAV]) {
             setCurrentRole(parsed.role);
             return;
           }
@@ -169,7 +187,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       setApiKey(localStorage.getItem("groq_api_key") || "");
-      setApiUrl(process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
+      setApiUrl(localStorage.getItem("aegis_api_url") || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
     }
   }, []);
 
@@ -180,6 +198,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         localStorage.setItem("groq_api_key", apiKey.trim());
       } else {
         localStorage.removeItem("groq_api_key");
+      }
+      if (apiUrl) {
+        localStorage.setItem("aegis_api_url", apiUrl.trim());
+      } else {
+        localStorage.removeItem("aegis_api_url");
       }
     }
     toast.success("Settings saved successfully!");
@@ -198,10 +221,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       badge: "bg-emerald-500/10 text-emerald-300 border-emerald-500/25",
     },
     mine_officer: {
-      name: "Mine Officer",
+      name: "Colliery Safety Manager",
       id: "MINE-001",
-      roleTag: "Manager",
+      roleTag: "Colliery Mgr",
       badge: "bg-sky-500/10 text-sky-300 border-sky-500/25",
+    },
+    frontline: {
+      name: "Frontline Field Sirdar",
+      id: "FIELD-001",
+      roleTag: "Field Sirdar",
+      badge: "bg-amber-500/10 text-amber-300 border-amber-500/25",
     },
     admin: {
       name: "System Administrator",
@@ -209,7 +238,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       roleTag: "Admin",
       badge: "bg-purple-500/10 text-purple-300 border-purple-500/25",
     },
-  }[currentRole];
+  }[currentRole] || {
+    name: "DGMS Regulator",
+    id: "REG-001",
+    roleTag: "Regulator",
+    badge: "bg-emerald-500/10 text-emerald-300 border-emerald-500/25",
+  };
 
   const activeNavGroups = ROLE_NAV[currentRole] || ROLE_NAV.regulator;
 
@@ -247,28 +281,38 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarContent>
           {activeNavGroups.map((group) => (
             <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-[11px] font-medium tracking-wider text-muted-foreground/80 uppercase px-3 py-2">
+                {group.label}
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {group.items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={pathname === item.url}
-                        tooltip={item.title}
-                      >
-                        <Link href={item.url} onClick={handleLinkClick}>
-                          <item.icon />
-                          <span className="truncate">{item.title}</span>
-                          {item.badge && (
-                            <Badge className="ml-auto text-[9px] py-0 px-1 bg-sky-500/20 text-sky-300 border-sky-500/30">
-                              {item.badge}
-                            </Badge>
-                          )}
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  {group.items.map((item) => {
+                    const isActive = pathname === item.url;
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive}
+                          tooltip={item.title}
+                          className={`transition-all duration-150 rounded-lg px-2.5 py-2 ${
+                            isActive
+                              ? "bg-[var(--persona-bg,rgba(16,185,129,0.12))] text-[var(--persona-color,#10B981)] font-semibold shadow-xs border-l-2 border-[var(--persona-color,#10B981)]"
+                              : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
+                          }`}
+                        >
+                          <Link href={item.url} onClick={handleLinkClick}>
+                            <item.icon className={isActive ? "text-[var(--persona-color,#10B981)] shrink-0" : "shrink-0"} />
+                            <span className="truncate">{item.title}</span>
+                            {item.badge && (
+                              <Badge className="ml-auto text-[9px] py-0.5 px-1.5 bg-[var(--persona-bg)] text-[var(--persona-color,#10B981)] border border-[var(--persona-border)] font-mono font-bold">
+                                {item.badge}
+                              </Badge>
+                            )}
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

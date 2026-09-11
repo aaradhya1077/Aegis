@@ -32,6 +32,15 @@ const GisMapComponent = dynamic(() => import("@/components/gis-map-component"), 
 
 const SUBSIDIARIES = ["ALL", "BCCL", "CCL", "SECL", "MCL", "WCL", "NCL", "ECL", "SCCL"];
 
+const COAL_BASINS = [
+  { name: "🇮🇳 National Overview", lat: 23.5, lng: 85.0, zoom: 6 },
+  { name: "Jharia Basin (BCCL)", lat: 23.75, lng: 86.41, zoom: 11 },
+  { name: "Korba Basin (SECL)", lat: 22.35, lng: 82.60, zoom: 11 },
+  { name: "Singrauli Basin (NCL)", lat: 24.11, lng: 82.63, zoom: 11 },
+  { name: "Raniganj Basin (ECL)", lat: 23.62, lng: 87.05, zoom: 11 },
+  { name: "Talcher Basin (MCL)", lat: 20.95, lng: 85.20, zoom: 11 },
+];
+
 export default function GisMapPage() {
   const [mines, setMines] = useState<any[]>([]);
   const [inspections, setInspections] = useState<InspectionRecord[]>([]);
@@ -40,6 +49,12 @@ export default function GisMapPage() {
   const [showHazards, setShowHazards] = useState(true);
   const [selectedMine, setSelectedMine] = useState<any | null>(null);
   const [mapStyle, setMapStyle] = useState<"standard" | "satellite">("standard");
+
+  // Geospatial buffer & basin navigation states
+  const [showBlastRadius, setShowBlastRadius] = useState(true);
+  const [showInundationBuffer, setShowInundationBuffer] = useState(false);
+  const [selectedBasin, setSelectedBasin] = useState("🇮🇳 National Overview");
+  const [flyToCoords, setFlyToCoords] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
 
   useEffect(() => {
     fetchMines().then((r) => setMines(r.mines || [])).catch(console.error);
@@ -63,6 +78,26 @@ export default function GisMapPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Blast Danger Radius Toggle */}
+          <Button
+            variant={showBlastRadius ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowBlastRadius(!showBlastRadius)}
+            className={`gap-1.5 text-xs ${showBlastRadius ? "bg-red-600 hover:bg-red-500 text-white" : ""}`}
+          >
+            💥 Blast Rings (500m)
+          </Button>
+
+          {/* Inundation Danger Buffer Toggle */}
+          <Button
+            variant={showInundationBuffer ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowInundationBuffer(!showInundationBuffer)}
+            className={`gap-1.5 text-xs ${showInundationBuffer ? "bg-sky-600 hover:bg-sky-500 text-white" : ""}`}
+          >
+            🌊 Flood Buffers
+          </Button>
+
           {/* Map Layer Style Switcher */}
           <Button
             variant="outline"
@@ -93,69 +128,69 @@ export default function GisMapPage() {
 
       {/* Top Stat Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-card/50 backdrop-blur-sm border-border/60">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
+        <Card className="bg-[#0e141d] border-white/10 border-l-[3px] border-l-emerald-500 shadow-sm hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
               <IconBuildingFactory2 size={22} />
             </div>
             <div>
-              <div className="text-2xl font-bold">{mines.length}</div>
-              <div className="text-xs text-muted-foreground">Monitored Mine Sites</div>
+              <div className="text-2xl font-extrabold tracking-tight text-white">{mines.length}</div>
+              <div className="text-xs font-medium text-muted-foreground mt-0.5">Monitored Mine Sites</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm border-border/60">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-rose-500/10 text-rose-500">
+        <Card className="bg-[#0e141d] border-white/10 border-l-[3px] border-l-red-500 shadow-sm hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-red-500/10 text-red-400">
               <IconAlertTriangle size={22} />
             </div>
             <div>
-              <div className="text-2xl font-bold">{highRiskCount}</div>
-              <div className="text-xs text-muted-foreground">High-Risk Buffer Zones</div>
+              <div className="text-2xl font-extrabold tracking-tight text-white">{highRiskCount}</div>
+              <div className="text-xs font-medium text-muted-foreground mt-0.5">High-Risk Buffer Zones</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm border-border/60">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-500">
+        <Card className="bg-[#0e141d] border-white/10 border-l-[3px] border-l-amber-500 shadow-sm hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
               <IconLayersLinked size={22} />
             </div>
             <div>
-              <div className="text-2xl font-bold">{criticalHazardsCount}</div>
-              <div className="text-xs text-muted-foreground">Active Critical Hazards</div>
+              <div className="text-2xl font-extrabold tracking-tight text-white">{criticalHazardsCount}</div>
+              <div className="text-xs font-medium text-muted-foreground mt-0.5">Active Critical Hazards</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm border-border/60">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+        <Card className="bg-[#0e141d] border-white/10 border-l-[3px] border-l-emerald-500 shadow-sm hover:border-white/20 transition-all duration-200 hover:-translate-y-0.5">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
               <IconShieldCheck size={22} />
             </div>
             <div>
-              <div className="text-2xl font-bold">{mines.length - highRiskCount}</div>
-              <div className="text-xs text-muted-foreground">Statutorily Safe Sites</div>
+              <div className="text-2xl font-extrabold tracking-tight text-white">{mines.length - highRiskCount}</div>
+              <div className="text-xs font-medium text-muted-foreground mt-0.5">Statutorily Safe Sites</div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Map Filter Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border border-border/60 bg-muted/30">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border border-white/10 bg-[#0e141d] shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+          <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1 mr-1">
             <IconFilter size={14} /> Subsidiary:
           </span>
           {SUBSIDIARIES.map((sub) => (
             <button
               key={sub}
               onClick={() => setSelectedSubsidiary(sub)}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium transition-all ${
+              className={`px-2.5 py-1 text-xs rounded-md font-semibold transition-all duration-150 ${
                 selectedSubsidiary === sub
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-background/80 hover:bg-muted text-muted-foreground border border-border/40"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "bg-white/5 hover:bg-white/10 text-muted-foreground border border-white/5"
               }`}
             >
               {sub}
@@ -164,21 +199,44 @@ export default function GisMapPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-muted-foreground">Risk Filter:</span>
+          <span className="text-xs font-semibold text-muted-foreground mr-1">Risk Filter:</span>
           {["ALL", "COMPLIANT", "HIGH", "CRITICAL"].map((f) => (
             <button
               key={f}
               onClick={() => setRiskFilter(f)}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium transition-all ${
+              className={`px-2.5 py-1 text-xs rounded-md font-semibold transition-all duration-150 ${
                 riskFilter === f
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-background/80 hover:bg-muted text-muted-foreground border border-border/40"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "bg-white/5 hover:bg-white/10 text-muted-foreground border border-white/5"
               }`}
             >
               {f}
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Coal Basin Quick-Zoom Toolbar */}
+      <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl border border-white/10 bg-[#0e141d] shadow-sm">
+        <span className="text-xs font-bold text-white flex items-center gap-1.5 mr-1">
+          📍 Major Coal Basins:
+        </span>
+        {COAL_BASINS.map((b) => (
+          <button
+            key={b.name}
+            onClick={() => {
+              setSelectedBasin(b.name);
+              setFlyToCoords({ lat: b.lat, lng: b.lng, zoom: b.zoom });
+            }}
+            className={`px-3 py-1 text-xs rounded-lg font-medium transition-all duration-150 ${
+              selectedBasin === b.name
+                ? "bg-sky-600 text-white shadow-xs font-bold"
+                : "bg-white/5 hover:bg-white/10 text-neutral-300 border border-white/5"
+            }`}
+          >
+            {b.name}
+          </button>
+        ))}
       </div>
 
       {/* Main Map + Side Panel Grid */}
@@ -190,6 +248,9 @@ export default function GisMapPage() {
             selectedSubsidiary={selectedSubsidiary}
             riskFilter={riskFilter}
             showHazards={showHazards}
+            showBlastRadius={showBlastRadius}
+            showInundationBuffer={showInundationBuffer}
+            flyToCoordinates={flyToCoords}
             onSelectMine={(mine) => setSelectedMine(mine)}
             mapStyle={mapStyle}
           />
