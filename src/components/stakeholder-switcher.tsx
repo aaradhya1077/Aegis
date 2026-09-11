@@ -20,6 +20,7 @@ import {
   IconCheck,
   IconPick,
 } from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 export type StakeholderRole = "regulator" | "mine_officer" | "admin" | "frontline";
@@ -79,6 +80,7 @@ export const STAKEHOLDERS: Record<StakeholderRole, StakeholderProfile> = {
 };
 
 export function StakeholderSwitcher({ variant = "header" }: { variant?: "header" | "compact" | "badge" }) {
+  const router = useRouter();
   const [activeRole, setActiveRole] = React.useState<StakeholderRole>("regulator");
 
   const syncUser = () => {
@@ -112,6 +114,7 @@ export function StakeholderSwitcher({ variant = "header" }: { variant?: "header"
     const profile = STAKEHOLDERS[roleKey];
     if (!profile) return;
 
+    setActiveRole(roleKey);
     if (typeof window !== "undefined") {
       localStorage.setItem(
         "user",
@@ -125,6 +128,7 @@ export function StakeholderSwitcher({ variant = "header" }: { variant?: "header"
       toast.success(`Switched active stakeholder to ${profile.title}`, {
         description: `Logged in as ${profile.id} (${profile.organization})`,
       });
+      router.push(`/dashboard?role=${roleKey}`);
     }
   };
 

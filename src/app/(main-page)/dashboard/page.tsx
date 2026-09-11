@@ -97,14 +97,41 @@ export default function DashboardPage() {
   const [ledgerValid, setLedgerValid] = useState<boolean | null>(null);
   const [isVerifyingLedger, setIsVerifyingLedger] = useState(false);
 
+  const normalizeRole = (roleStr?: string | null): "regulator" | "mine_officer" | "frontline" | "admin" | null => {
+    if (!roleStr) return null;
+    const clean = roleStr.toLowerCase().replace("-", "_").trim();
+    if (clean === "regulator" || clean === "mine_officer" || clean === "frontline" || clean === "admin") {
+      return clean;
+    }
+    if (clean.includes("frontline") || clean.includes("sirdar") || clean.includes("field")) return "frontline";
+    if (clean.includes("officer") || clean.includes("manager") || clean.includes("colliery") || clean.includes("mine")) return "mine_officer";
+    if (clean.includes("admin")) return "admin";
+    if (clean.includes("regulator") || clean.includes("dgms")) return "regulator";
+    return null;
+  };
+
   const syncUser = () => {
     if (typeof window !== "undefined") {
       try {
+        // 1. Check URL query params first (e.g. ?role=frontline or ?role=sirdar)
+        const params = new URLSearchParams(window.location.search);
+        const urlRole = normalizeRole(params.get("role"));
+        if (urlRole) {
+          setCurrentRole(urlRole);
+          const profile = STAKEHOLDERS[urlRole];
+          if (profile) {
+            localStorage.setItem("user", JSON.stringify({ id: profile.id, name: profile.name, role: profile.role }));
+          }
+          return;
+        }
+
+        // 2. Check localStorage
         const stored = localStorage.getItem("user");
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed.role && (parsed.role === "regulator" || parsed.role === "mine_officer" || parsed.role === "frontline" || parsed.role === "admin")) {
-            setCurrentRole(parsed.role);
+          const normalized = normalizeRole(parsed.role) || normalizeRole(parsed.id);
+          if (normalized) {
+            setCurrentRole(normalized);
             return;
           }
         }
@@ -126,22 +153,23 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboard().then(setData).catch(console.error);
-    fetchMines().then((r) => setMines(r.mines || [])).catch(console.error);
+    fetchMines().then((r) => setMines(r?.mines || [])).catch(console.error);
     fetchForecastAlerts(0.4)
       .then((r) => setAlerts((r?.alerts || []).slice(0, 8)))
       .catch((err) => {
         console.warn("Forecast alerts fetch failed:", err);
         setAlerts([]);
       });
-    fetchInspections().then((r) => setInspections(r.inspections || [])).catch(console.error);
-    fetchViolations().then((r) => setViolations(r.violations || [])).catch(console.error);
-    fetchAuditBlocks(8).then((r) => setAuditBlocks(r.blocks || [])).catch(console.error);
-    verifyAuditChain().then((r) => setLedgerValid(r.valid)).catch(console.error);
+    fetchInspections().then((r) => setInspections(r?.inspections || [])).catch(console.error);
+    fetchViolations().then((r) => setViolations(r?.violations || [])).catch(console.error);
+    fetchAuditBlocks(8).then((r) => setAuditBlocks(r?.blocks || [])).catch(console.error);
+    verifyAuditChain().then((r) => setLedgerValid(r?.valid ?? true)).catch(console.error);
   }, []);
 
   const handleSwitchStakeholder = (role: StakeholderRole) => {
     const profile = STAKEHOLDERS[role];
     if (!profile) return;
+    setCurrentRole(role);
     if (typeof window !== "undefined") {
       localStorage.setItem("user", JSON.stringify({ id: profile.id, name: profile.name, role: profile.role }));
       window.dispatchEvent(new Event("aegis-user-changed"));

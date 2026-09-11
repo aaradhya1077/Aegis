@@ -81,10 +81,18 @@ export default function LandingPage() {
       const data = await login(uid, pwd);
       if (typeof window !== "undefined") {
         if (data?.accessToken) localStorage.setItem("accessToken", data.accessToken);
-        if (data?.user) localStorage.setItem("user", JSON.stringify(data.user));
+        const roleMap: Record<string, string> = {
+          "REG-001": "regulator",
+          "MINE-001": "mine_officer",
+          "FIELD-001": "frontline",
+          "ADMIN-001": "admin",
+        };
+        const targetRole = data?.user?.role || roleMap[uid.trim().toUpperCase()] || "regulator";
+        const userObj = data?.user || { id: uid, role: targetRole, name: uid === "FIELD-001" ? "Ramesh Mahto (Mining Sirdar)" : uid };
+        localStorage.setItem("user", JSON.stringify(userObj));
         window.dispatchEvent(new Event("aegis-user-changed"));
+        router.push(`/dashboard?role=${targetRole}`);
       }
-      router.push("/dashboard");
     } catch {
       setError("Invalid credentials. Try REG-001, MINE-001, FIELD-001, or ADMIN-001");
     } finally {

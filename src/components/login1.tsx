@@ -220,17 +220,31 @@ export function Login1({ initialRole }: Login1Props) {
         if (data?.accessToken) {
           localStorage.setItem("accessToken", data.accessToken);
         }
-        if (data?.user) {
-          localStorage.setItem("user", JSON.stringify(data.user));
-        }
+        const roleMap: Record<string, string> = {
+          "REG-001": "regulator",
+          "MINE-001": "mine_officer",
+          "FIELD-001": "frontline",
+          "ADMIN-001": "admin",
+        };
+        const targetRole = data?.user?.role || roleMap[uid.trim().toUpperCase()] || activeRole;
+        const userObj = data?.user || { id: uid, role: targetRole, name: uid === "FIELD-001" ? "Ramesh Mahto (Mining Sirdar)" : activeConfig.title };
+        localStorage.setItem("user", JSON.stringify(userObj));
         window.dispatchEvent(new Event("aegis-user-changed"));
       }
+
+      const roleMap: Record<string, string> = {
+        "REG-001": "regulator",
+        "MINE-001": "mine_officer",
+        "FIELD-001": "frontline",
+        "ADMIN-001": "admin",
+      };
+      const targetRole = data?.user?.role || roleMap[uid.trim().toUpperCase()] || activeRole;
 
       toast.success(`Authenticated as ${data?.user?.name || activeConfig.title}`, {
         description: `Active Statutory Scope: ${activeConfig.badgeLabel}`,
       });
 
-      router.push("/dashboard");
+      router.push(`/dashboard?role=${targetRole}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Statutory authentication failed";
       setError(message);

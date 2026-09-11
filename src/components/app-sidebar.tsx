@@ -112,6 +112,7 @@ const ROLE_NAV: Record<"regulator" | "mine_officer" | "frontline" | "admin", Nav
     {
       label: "Frontline Shift Supervision",
       items: [
+        { title: "Frontline Sirdar Dashboard", url: "/dashboard?role=frontline", icon: IconChartBar, badge: "Live" },
         { title: "Mobile Field Inspector", url: "/inspector", icon: IconDeviceMobile, badge: "PWA/GPS" },
         { title: "Active Hazards & Violations", url: "/violations", icon: IconAlertOctagon },
         { title: "GIS Spatial Pit Hazards", url: "/gis-map", icon: IconMap2 },
@@ -121,7 +122,6 @@ const ROLE_NAV: Record<"regulator" | "mine_officer" | "frontline" | "admin", Nav
     {
       label: "Colliery Overview",
       items: [
-        { title: "Colliery Safety Dashboard", url: "/dashboard", icon: IconChartBar },
         { title: "Mines Registry", url: "/mines", icon: IconBuildingFactory2 },
       ],
     },
