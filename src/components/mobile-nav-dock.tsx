@@ -48,7 +48,7 @@ const mobileDockItems = [
 
 export function MobileNavDock() {
   const pathname = usePathname();
-  const [role, setRole] = useState<"regulator" | "mine_officer" | "admin">("regulator");
+  const [role, setRole] = useState<"regulator" | "mine_officer" | "admin" | "frontline">("regulator");
 
   useEffect(() => {
     const syncRole = () => {
@@ -79,7 +79,7 @@ export function MobileNavDock() {
     return null;
   }
 
-  const roleStyles = {
+  const roleStylesMap = {
     regulator: {
       text: "text-emerald-400",
       bg: "bg-emerald-500/20 text-emerald-300",
@@ -96,6 +96,14 @@ export function MobileNavDock() {
       badge: "bg-sky-500",
       dockRing: "ring-sky-500/20",
     },
+    frontline: {
+      text: "text-amber-400",
+      bg: "bg-amber-500/20 text-amber-300",
+      highlight: "bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/30",
+      bar: "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]",
+      badge: "bg-amber-500",
+      dockRing: "ring-amber-500/20",
+    },
     admin: {
       text: "text-purple-400",
       bg: "bg-purple-500/20 text-purple-300",
@@ -104,7 +112,9 @@ export function MobileNavDock() {
       badge: "bg-purple-500",
       dockRing: "ring-purple-500/20",
     },
-  }[role];
+  };
+
+  const roleStyles = roleStylesMap[role as keyof typeof roleStylesMap] || roleStylesMap.regulator;
 
   return (
     <nav
